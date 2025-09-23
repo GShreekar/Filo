@@ -19,38 +19,38 @@ export const isLoading = writable(false);
 export const isSaving = writable(false);
 
 export const contextMenu = writable<{
-  visible: boolean;
-  x: number;
-  y: number;
-  type: 'folder' | 'note';
-  target?: Folder | Note;
+	visible: boolean;
+	x: number;
+	y: number;
+	type: 'folder' | 'note';
+	target?: Folder | Note;
 }>({
-  visible: false,
-  x: 0,
-  y: 0,
-  type: 'folder'
+	visible: false,
+	x: 0,
+	y: 0,
+	type: 'folder'
 });
 
 export const confirmModal = writable<{
-  visible: boolean;
-  title: string;
-  message: string;
-  onConfirm?: () => void;
+	visible: boolean;
+	title: string;
+	message: string;
+	onConfirm?: () => void;
 }>({
-  visible: false,
-  title: '',
-  message: ''
+	visible: false,
+	title: '',
+	message: ''
 });
 
 export const inputModal = writable<{
-  visible: boolean;
-  title: string;
-  placeholder: string;
-  value: string;
-  onConfirm?: (value: string) => void;
+	visible: boolean;
+	title: string;
+	placeholder: string;
+	value: string;
+	onConfirm?: (value: string) => void;
 }>({
-  visible: false,
-  title: '',
-  placeholder: '',
-  value: ''
+	visible: false,
+	title: '',
+	placeholder: '',
+	value: ''
 });
