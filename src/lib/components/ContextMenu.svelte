@@ -56,7 +56,7 @@
 {#if visible}
 	<div
 		bind:this={contextMenu}
-		class="fixed z-50 min-w-[160px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+		class="fixed z-50 min-w-[160px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800 pointer-events-auto"
 		style="left: {x}px; top: {y}px;"
 	>
 		{#if type === 'folder'}

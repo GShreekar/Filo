@@ -222,3 +222,25 @@ body {
 .slide-in-from-bottom-4 {
 	animation-name: slide-in-from-bottom;
 }
+
+@keyframes swipe-out-bottom {
+	to {
+		transform: translateY(100%);
+		opacity: 0;
+	}
+}
+
+.swipe-out-bottom {
+	animation: swipe-out-bottom 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.touch-pan-y {
+	touch-action: pan-y;
+}
+
+@media (max-width: 768px) {
+	.touch-target {
+		min-height: 44px;
+		min-width: 44px;
+	}
+}

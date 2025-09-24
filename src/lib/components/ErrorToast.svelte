@@ -9,12 +9,63 @@
 	$: hiddenCount = Math.max(0, currentErrors.length - 2);
 
 	let isMobile = false;
-	let touchStartY = 0;
+	let pointerStartX = 0;
+	let pointerStartY = 0;
 	let isDragging = false;
+	let dragDistance = 0;
+	let dragDirection: 'horizontal' | 'vertical' | null = null;
+	let swipeThreshold = 50;
+	let draggedToastId: string | null = null;
+	let capturedPointerId: number | null = null;
+
+	$: getTransformStyle = (errorId: string) => {
+		let baseStyle = 'touch-action: none;';
+		
+		if (draggedToastId === errorId && isDragging && dragDistance > 0) {
+			const scale = Math.max(0.95, 1 - (dragDistance / 200));
+			const opacity = Math.max(0.6, 1 - (dragDistance / 100));
+			const blur = dragDistance > swipeThreshold * 0.5 ? 'blur(1px)' : 'none';
+			
+			let transform = '';
+			if (dragDirection === 'horizontal') {
+				const translateX = dragDistance;
+				transform = `translateX(${translateX}px) scale(${scale})`;
+			} else if (dragDirection === 'vertical') {
+				const translateY = dragDistance;
+				transform = `translateY(${translateY}px) scale(${scale})`;
+			}
+			
+			baseStyle += ` transform: ${transform}; opacity: ${opacity}; filter: ${blur};`;
+		}
+		
+		return baseStyle;
+	};
+
+	let dragTimeout: ReturnType<typeof setTimeout>;
+	$: if (isDragging) {
+		clearTimeout(dragTimeout);
+		dragTimeout = setTimeout(() => {
+			if (isDragging) {
+				isDragging = false;
+				draggedToastId = null;
+				dragDistance = 0;
+				dragDirection = null;
+				capturedPointerId = null;
+			}
+		}, 3000);
+	}
 
 	onMount(() => {
 		const checkMobile = () => {
+			const wasMobile = isMobile;
 			isMobile = window.innerWidth < 768;
+			if (wasMobile !== isMobile) {
+				isDragging = false;
+				draggedToastId = null;
+				dragDistance = 0;
+				dragDirection = null;
+				capturedPointerId = null;
+			}
 		};
 		checkMobile();
 		window.addEventListener('resize', checkMobile);
@@ -48,28 +99,90 @@
 		return `${prefix}: ${message}`;
 	}
 
-	function handleTouchStart(event: TouchEvent, errorId: string) {
+	function handlePointerDown(event: PointerEvent, errorId: string) {
 		if (!isMobile) return;
-		touchStartY = event.touches[0].clientY;
+		pointerStartX = event.clientX;
+		pointerStartY = event.clientY;
 		isDragging = false;
+		dragDistance = 0;
+		dragDirection = null;
+		draggedToastId = errorId;
+		capturedPointerId = event.pointerId;
+		
+		const target = event.currentTarget as HTMLElement;
+		target.setPointerCapture(event.pointerId);
+		
+		event.preventDefault();
 	}
 
-	function handleTouchMove(event: TouchEvent) {
-		if (!isMobile) return;
-		isDragging = true;
+	function handlePointerMove(event: PointerEvent) {
+		if (!isMobile || !draggedToastId || event.pointerId !== capturedPointerId) return;
+		
+		const currentX = event.clientX;
+		const currentY = event.clientY;
+		const deltaX = currentX - pointerStartX;
+		const deltaY = currentY - pointerStartY;
+		
+		if (!dragDirection && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
+			dragDirection = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
+		}
+		
+		if (dragDirection === 'horizontal') {
+			const distance = Math.abs(deltaX);
+			if (distance > 5) {
+				isDragging = true;
+				dragDistance = Math.min(distance * 0.8, 120);
+				event.preventDefault();
+				
+				if (distance > swipeThreshold) {
+					clearError(draggedToastId);
+					isDragging = false;
+					draggedToastId = null;
+					dragDistance = 0;
+					dragDirection = null;
+					capturedPointerId = null;
+				}
+			}
+		} else if (dragDirection === 'vertical' && deltaY > 0) {
+			isDragging = true;
+			dragDistance = Math.min(deltaY * 0.8, 120);
+			event.preventDefault();
+			
+			if (deltaY > swipeThreshold) {
+				clearError(draggedToastId);
+				isDragging = false;
+				draggedToastId = null;
+				dragDistance = 0;
+				dragDirection = null;
+				capturedPointerId = null;
+			}
+		}
 	}
 
-	function handleTouchEnd(event: TouchEvent, errorId: string) {
-		if (!isMobile || !isDragging) return;
+	function handlePointerUp(event: PointerEvent, errorId: string) {
+		if (!isMobile || !draggedToastId || errorId !== draggedToastId || event.pointerId !== capturedPointerId) return;
 
-		const touchEndY = event.changedTouches[0].clientY;
-		const deltaY = touchEndY - touchStartY;
-
-		if (deltaY > 50) {
-			clearError(errorId);
+		const target = event.currentTarget as HTMLElement;
+		if (capturedPointerId !== null) {
+			target.releasePointerCapture(capturedPointerId);
 		}
 
+		if (isDragging && draggedToastId === errorId) {
+			target.style.transform = '';
+			target.style.opacity = '';
+			target.style.filter = '';
+			target.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out, filter 0.2s ease-out';
+			
+			setTimeout(() => {
+				target.style.transition = '';
+			}, 200);
+		}
+		
 		isDragging = false;
+		draggedToastId = null;
+		dragDistance = 0;
+		dragDirection = null;
+		capturedPointerId = null;
 	}
 
 	function handleKeydown(event: KeyboardEvent, errorId: string) {
@@ -93,18 +206,21 @@
 	{#each visibleErrors as error (error.id)}
 		<button
 			type="button"
-			class="flex w-full items-center gap-3 rounded-lg border p-4 text-left shadow-lg transition-all duration-300
+			class="flex w-full items-center gap-3 rounded-lg border p-4 text-left shadow-lg
 				{getColorClasses(error.type)}
 				{isMobile ? 'animate-in slide-in-from-bottom-4' : 'animate-in slide-in-from-right-4'}
-				max-w-[calc(100vw-2rem)] touch-pan-y
+				max-w-[calc(100vw-2rem)]
 				select-none focus:ring-2
-				focus:ring-blue-500 focus:ring-offset-2 focus:outline-none md:max-w-md"
+				focus:ring-blue-500 focus:ring-offset-2 focus:outline-none md:max-w-md
+				{draggedToastId === error.id && isDragging ? '' : 'transition-all duration-300'}"
+			style={getTransformStyle(error.id)}
 			aria-label={getAriaLabel(error.type, error.message)}
 			on:click={() => clearError(error.id)}
 			on:keydown={(e) => handleKeydown(e, error.id)}
-			on:touchstart={(e) => handleTouchStart(e, error.id)}
-			on:touchmove={handleTouchMove}
-			on:touchend={(e) => handleTouchEnd(e, error.id)}
+			on:pointerdown={(e) => handlePointerDown(e, error.id)}
+			on:pointermove={handlePointerMove}
+			on:pointerup={(e) => handlePointerUp(e, error.id)}
+			on:pointercancel={(e) => handlePointerUp(e, error.id)}
 		>
 			<div role="alert" aria-live="assertive" class="flex w-full items-center gap-3">
 				<svelte:component this={getIcon(error.type)} class="h-5 w-5 flex-shrink-0" />
@@ -117,7 +233,9 @@
 						{error.timestamp.toLocaleTimeString()}
 					</p>
 					{#if isMobile}
-						<p class="mt-1 text-xs opacity-60">Swipe down to dismiss</p>
+						<p class="mt-1 text-xs opacity-60">
+							Swipe to dismiss
+						</p>
 					{/if}
 				</div>
 			</div>

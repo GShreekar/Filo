@@ -24,7 +24,7 @@
 	import { searchAll, highlightText, formatTimeAgo } from '$lib/search-service';
 	import { showError } from '$lib/error-store';
 	import { tick } from 'svelte';
-	import { Folder, FolderOpen, FileText, Plus, Search } from 'lucide-svelte';
+	import { Folder, FolderOpen, FileText, Plus, Search, MoreVertical } from 'lucide-svelte';
 	import ContextMenu from './ContextMenu.svelte';
 	import ConfirmModal from './ConfirmModal.svelte';
 	import InputModal from './InputModal.svelte';
@@ -48,6 +48,15 @@
 	let editingNoteId: string | null = null;
 	let editingTitle = '';
 	let titleInputElement: HTMLInputElement;
+
+	let searchContextMenuVisible = false;
+	let searchContextMenuX = 0;
+	let searchContextMenuY = 0;
+	let searchContextMenuType: 'folder' | 'note' = 'folder';
+	let searchContextMenuTarget: any = null;
+
+	let longPressTimer: NodeJS.Timeout | null = null;
+	let touchStartTime = 0;
 
 	let contextMenuVisible = false;
 
@@ -334,7 +343,124 @@
 				break;
 		}
 	}
+
+	function handleTouchStart(event: TouchEvent, type: 'folder' | 'note', target: any) {
+		touchStartTime = Date.now();
+		longPressTimer = setTimeout(() => {
+			const touch = event.touches[0];
+			if (touch) {
+				const syntheticEvent = {
+					preventDefault: () => event.preventDefault(),
+					stopPropagation: () => event.stopPropagation(),
+					clientX: touch.clientX,
+					clientY: touch.clientY
+				} as MouseEvent;
+				showSearchContextMenu(syntheticEvent, type, target);
+			}
+		}, 500);
+	}
+
+	function handleTouchEnd() {
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+	}
+
+	function handleTouchMove() {
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+	}
+
+	function showSearchContextMenu(event: MouseEvent, type: 'folder' | 'note', target: any) {
+		if (!target) return;
+		event.preventDefault();
+		event.stopPropagation();
+		searchContextMenuX = event.clientX;
+		searchContextMenuY = event.clientY;
+		searchContextMenuType = type;
+		searchContextMenuTarget = target;
+		searchContextMenuVisible = true;
+	}
+
+	function handleSearchContextMenuAction(event: CustomEvent<string>) {
+		const action = event.detail;
+		searchContextMenuVisible = false;
+
+		if (!searchContextMenuTarget) return;
+
+		switch (action) {
+			case 'rename':
+				handleSearchRename();
+				break;
+			case 'delete':
+				handleSearchDelete();
+				break;
+		}
+	}
+
+	async function handleSearchRename() {
+		if (!searchContextMenuTarget) return;
+
+		const isFolder = searchContextMenuType === 'folder';
+		const currentName = isFolder ? searchContextMenuTarget.name : searchContextMenuTarget.title;
+
+		inputModal.set({
+			visible: true,
+			title: `Rename ${isFolder ? 'Folder' : 'Note'}`,
+			placeholder: isFolder ? 'Folder name' : 'Note title',
+			value: currentName,
+			onConfirm: async (newName: string) => {
+				try {
+					if (isFolder) {
+						await updateFolder(searchContextMenuTarget.id, newName);
+					} else {
+						await updateNote(searchContextMenuTarget.id, { title: newName });
+					}
+					inputModal.update((modal) => ({ ...modal, visible: false }));
+				} catch (error) {
+					console.error(`Error renaming ${isFolder ? 'folder' : 'note'}:`, error);
+				}
+			}
+		});
+	}
+
+	async function handleSearchDelete() {
+		if (!searchContextMenuTarget) return;
+
+		const isFolder = searchContextMenuType === 'folder';
+		const name = isFolder ? searchContextMenuTarget.name : searchContextMenuTarget.title;
+
+		confirmModal.set({
+			visible: true,
+			title: `Delete ${isFolder ? 'Folder' : 'Note'}`,
+			message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+			onConfirm: async () => {
+				try {
+					if (isFolder) {
+						await deleteFolder(searchContextMenuTarget.id);
+					} else {
+						await deleteNote(searchContextMenuTarget.id);
+					}
+					confirmModal.update((modal) => ({ ...modal, visible: false }));
+				} catch (error) {
+					console.error(`Error deleting ${isFolder ? 'folder' : 'note'}:`, error);
+				}
+			}
+		});
+	}
+
+	function handleGlobalClick(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.search-context-menu')) {
+			searchContextMenuVisible = false;
+		}
+	}
 </script>
+
+<svelte:window on:click={handleGlobalClick} />
 
 <div
 	class="flex h-full flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
@@ -390,14 +516,19 @@
 				</h3>
 				{#each $searchResults as result, index}
 					{#if result.type === 'note' && result.noteResult}
-						<button
-							on:click={() => result.noteResult && selectNote(result.noteResult.note)}
-							class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-							class:bg-blue-50={$selectedNote?.id === result.noteResult.note.id}
-							class:dark:bg-blue-900={$selectedNote?.id === result.noteResult.note.id}
-							class:ring-2={$selectedSearchIndex === index}
-							class:ring-blue-500={$selectedSearchIndex === index}
-						>
+						<div class="relative group">
+							<button
+								on:click={() => result.noteResult && selectNote(result.noteResult.note)}
+								on:contextmenu={(e) => result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note)}
+								on:touchstart={(e) => result.noteResult && handleTouchStart(e, 'note', result.noteResult.note)}
+								on:touchend={handleTouchEnd}
+								on:touchmove={handleTouchMove}
+								class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+								class:bg-blue-50={$selectedNote?.id === result.noteResult.note.id}
+								class:dark:bg-blue-900={$selectedNote?.id === result.noteResult.note.id}
+								class:ring-2={$selectedSearchIndex === index}
+								class:ring-blue-500={$selectedSearchIndex === index}
+							>
 							<div class="mb-1 flex items-center gap-2">
 								<FileText class="h-4 w-4 text-gray-400" />
 								<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -429,13 +560,30 @@
 								</div>
 							{/if}
 						</button>
-					{:else if result.type === 'folder' && result.folderResult}
+						<!-- Context menu trigger button -->
 						<button
-							on:click={() => result.folderResult && toggleFolder(result.folderResult.folder.id)}
-							class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-							class:ring-2={$selectedSearchIndex === index}
-							class:ring-blue-500={$selectedSearchIndex === index}
+							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
+							on:click={(e) => {
+								e.stopPropagation();
+								result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note);
+							}}
+							title="More options"
 						>
+							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+						</button>
+					</div>
+					{:else if result.type === 'folder' && result.folderResult}
+						<div class="relative group">
+							<button
+								on:click={() => result.folderResult && toggleFolder(result.folderResult.folder.id)}
+								on:contextmenu={(e) => result.folderResult && showSearchContextMenu(e, 'folder', result.folderResult.folder)}
+								on:touchstart={(e) => result.folderResult && handleTouchStart(e, 'folder', result.folderResult.folder)}
+								on:touchend={handleTouchEnd}
+								on:touchmove={handleTouchMove}
+								class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+								class:ring-2={$selectedSearchIndex === index}
+								class:ring-blue-500={$selectedSearchIndex === index}
+							>
 							<div class="mb-1 flex items-center gap-2">
 								<Folder class="h-4 w-4 text-blue-600" />
 								<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -453,6 +601,18 @@
 								{getNotesInFolder(result.folderResult.folder.id).length} notes
 							</div>
 						</button>
+						<!-- Context menu trigger button -->
+						<button
+							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
+							on:click={(e) => {
+								e.stopPropagation();
+								result.folderResult && showSearchContextMenu(e, 'folder', result.folderResult.folder);
+							}}
+							title="More options"
+						>
+							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+						</button>
+					</div>
 					{/if}
 				{/each}
 
@@ -649,3 +809,17 @@
 	on:confirm={(e) => $inputModal.onConfirm?.(e.detail)}
 	on:cancel={() => inputModal.update((modal) => ({ ...modal, visible: false }))}
 />
+
+<!-- Search Context Menu - positioned at document level with high z-index -->
+{#if searchContextMenuVisible}
+	<div class="search-context-menu fixed inset-0 z-[9999] pointer-events-none">
+		<ContextMenu
+			x={searchContextMenuX}
+			y={searchContextMenuY}
+			visible={searchContextMenuVisible}
+			type={searchContextMenuType}
+			on:close={() => (searchContextMenuVisible = false)}
+			on:action={handleSearchContextMenuAction}
+		/>
+	</div>
+{/if}
