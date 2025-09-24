@@ -3,7 +3,7 @@
 	import { EditorView, basicSetup } from 'codemirror';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import { EditorState, StateEffect } from '@codemirror/state';
+	import { EditorState } from '@codemirror/state';
 	import { keymap } from '@codemirror/view';
 	import { indentWithTab } from '@codemirror/commands';
 	import MarkdownToolbar from './MarkdownToolbar.svelte';

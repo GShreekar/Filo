@@ -144,18 +144,18 @@
 <svelte:window on:click={handleClickOutside} />
 
 <div
-	class="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 dark:border-gray-700 dark:bg-gray-900"
+	class="flex h-14 items-center justify-between border-b border-gray-200 bg-white px-2 sm:px-4 dark:border-gray-700 dark:bg-gray-900"
 >
-	<div class="flex items-center gap-3">
+	<div class="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
 		<button
 			on:click={toggleSidebar}
-			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+			class="flex-shrink-0 rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 			title="Toggle Sidebar"
 		>
 			<Menu size={20} class="text-gray-600 dark:text-gray-400" />
 		</button>
 
-		<div class="relative" bind:this={searchContainer}>
+		<div class="relative min-w-0 flex-1 sm:flex-none" bind:this={searchContainer}>
 			<div class="relative">
 				<Search
 					size={18}
@@ -169,7 +169,7 @@
 					on:focus={handleSearchFocus}
 					on:blur={handleSearchBlur}
 					on:keydown={handleSearchKeydown}
-					class="w-80 rounded-lg border border-gray-200 bg-gray-50 py-2 pr-10 pl-10 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-400"
+					class="w-full min-w-0 rounded-lg border border-gray-200 bg-gray-50 py-2 pr-10 pl-10 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none sm:w-80 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-blue-400"
 				/>
 				{#if $searchQuery}
 					<button
@@ -197,18 +197,18 @@
 		</div>
 	</div>
 
-	<div class="flex items-center gap-2">
+	<div class="flex flex-shrink-0 items-center gap-1 sm:gap-2">
 		<button
 			on:click={handleNewNote}
 			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 			title="New Note (Ctrl+N)"
 		>
-			<Plus size={20} class="text-gray-600 dark:text-gray-400" />
+			<Plus size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
 		</button>
 
 		<button
 			on:click={handleNewFolder}
-			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+			class="hidden rounded-lg p-2 transition-colors hover:bg-gray-100 sm:block dark:hover:bg-gray-800"
 			title="New Folder (Ctrl+Shift+N)"
 		>
 			<FolderPlus size={20} class="text-gray-600 dark:text-gray-400" />

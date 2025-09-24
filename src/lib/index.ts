@@ -6,7 +6,6 @@ export {
 	selectedNote,
 	selectedFolder,
 	searchQuery,
-	darkMode,
 	sidebarCollapsed
 } from './stores';
 

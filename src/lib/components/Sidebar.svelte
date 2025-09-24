@@ -247,6 +247,9 @@
 
 	async function handleCreateNote(folderId: string) {
 		try {
+			expandedFolders.add(folderId);
+			expandedFolders = expandedFolders;
+
 			const noteId = await createNote(folderId, 'Untitled Note');
 
 			const checkForNote = () => {
@@ -294,6 +297,14 @@
 	}
 
 	$: standaloneNotes = $notes.filter((note) => note.folderId === null);
+
+	$: folderNotes = $folders.reduce(
+		(acc, folder) => {
+			acc[folder.id] = $notes.filter((note) => note.folderId === folder.id);
+			return acc;
+		},
+		{} as Record<string, Note[]>
+	);
 
 	function handleSearchKeydown(event: KeyboardEvent) {
 		if (!isSearching || $searchResults.length === 0) return;
@@ -540,7 +551,7 @@
 						<!-- Notes in Folder -->
 						{#if expandedFolders.has(folder.id)}
 							<div class="mt-1 ml-6">
-								{#each getNotesInFolder(folder.id) as note}
+								{#each folderNotes[folder.id] || [] as note (note.id)}
 									<div
 										class="group flex items-center justify-between"
 										role="menuitem"
@@ -585,7 +596,7 @@
 									</div>
 								{/each}
 
-								{#if getNotesInFolder(folder.id).length === 0}
+								{#if (folderNotes[folder.id] || []).length === 0}
 									<div class="p-2 text-xs text-gray-500 italic dark:text-gray-400">
 										No notes yet
 									</div>

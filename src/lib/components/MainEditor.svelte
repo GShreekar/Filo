@@ -9,12 +9,12 @@
 		setInitialNoteState,
 		saveCurrentNoteIfDirty
 	} from '$lib/auto-save';
-	import { updateNote } from '$lib/firebase-service';
+	import { updateNote, createNote } from '$lib/firebase-service';
 	import { showError } from '$lib/error-store';
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import EmptyState from './EmptyState.svelte';
-	import { FileText, Eye, Edit, Clock, Smartphone, Monitor, Tablet } from 'lucide-svelte';
+	import { FileText, Eye, Edit, Clock, Smartphone, Monitor, Tablet, X, Plus } from 'lucide-svelte';
 	import type { Note } from '$lib/types';
 	import { onMount, tick } from 'svelte';
 
@@ -212,13 +212,17 @@
 			}
 		}
 	}
+
+	function closeNote() {
+		selectedNote.set(null);
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
 
 <div class="flex h-full flex-col bg-white dark:bg-gray-800">
 	{#if $selectedNote}
-		<!-- View Mode Toggle -->
+		<!-- Header with title and controls -->
 		<div
 			class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700"
 		>
@@ -296,6 +300,15 @@
 						Desktop
 					{/if}
 				</div>
+
+				<!-- Close button -->
+				<button
+					on:click={closeNote}
+					class="rounded-lg p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+					title="Close note"
+				>
+					<X class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+				</button>
 
 				<!-- View mode toggle -->
 				<div class="flex items-center rounded-lg bg-gray-100 p-1 dark:bg-gray-700">
@@ -401,13 +414,70 @@
 		{/if}
 	{:else}
 		<!-- Welcome Screen -->
-		<div class="flex flex-1 items-center justify-center">
-			<EmptyState
-				icon={FileText}
-				title="Welcome to Filo"
-				description="Select a note from the sidebar to start editing, or create a new folder and note to get started."
-				actionText=""
-			/>
+		<div class="flex flex-1 items-center justify-center p-8">
+			<div class="max-w-md text-center">
+				<FileText class="mx-auto mb-4 h-16 w-16 text-gray-400 dark:text-gray-500" />
+				<h2 class="mb-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+					Welcome to Filo
+				</h2>
+				<p class="mb-6 text-gray-600 dark:text-gray-400">
+					Select a note from the sidebar to start editing, or create a new note to begin your
+					writing journey.
+				</p>
+				<div class="flex flex-col justify-center gap-3 sm:flex-row">
+					<button
+						on:click={async () => {
+							try {
+								const noteId = await createNote(null, 'Untitled Note');
+								const checkForNote = () => {
+									const newNote = $notes.find((n) => n.id === noteId);
+									if (newNote) {
+										selectedNote.set(newNote);
+									} else {
+										setTimeout(checkForNote, 100);
+									}
+								};
+								checkForNote();
+							} catch (error) {
+								console.error('Failed to create note:', error);
+							}
+						}}
+						class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+					>
+						<Plus class="h-4 w-4" />
+						Create New Note
+					</button>
+					<button
+						on:click={() => {
+							const searchInput = document.querySelector(
+								'input[placeholder*="Search"]'
+							) as HTMLInputElement;
+							if (searchInput) {
+								searchInput.focus();
+							}
+						}}
+						class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+					>
+						Search Notes
+					</button>
+				</div>
+				<div class="mt-8 text-xs text-gray-500 dark:text-gray-400">
+					<p>Keyboard shortcuts:</p>
+					<div class="mt-2 space-y-1">
+						<div>
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+N</kbd> New
+							note
+						</div>
+						<div>
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+K</kbd> Search
+						</div>
+						<div>
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+B</kbd> Toggle
+							sidebar
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 	{/if}
 </div>

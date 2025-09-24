@@ -21,9 +21,12 @@ export function showError(message: string, type: 'error' | 'warning' | 'success'
 
 	errors.update((current) => [...current, error]);
 
+	const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+	const dismissTime = isMobile ? 3000 : 5000;
+
 	setTimeout(() => {
 		errors.update((current) => current.filter((e) => e.id !== error.id));
-	}, 5000);
+	}, dismissTime);
 }
 
 export function clearError(id: string) {

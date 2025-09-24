@@ -11,14 +11,30 @@
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let searchInput: HTMLInputElement;
+	let editorContainer: HTMLElement;
+	let isMobile = false;
 
 	onMount(() => {
 		const unsubscribeFolders = subscribeFolders();
 		const unsubscribeNotes = subscribeNotes();
 
+		const checkMobile = () => {
+			const wasMobile = isMobile;
+			isMobile = window.innerWidth < 768;
+
+			if (isMobile && !wasMobile) {
+				sidebarCollapsed.set(true);
+			} else if (!isMobile && wasMobile && $sidebarCollapsed) {
+				sidebarCollapsed.set(false);
+			}
+		};
+		checkMobile();
+		window.addEventListener('resize', checkMobile);
+
 		return () => {
 			unsubscribeFolders();
 			unsubscribeNotes();
+			window.removeEventListener('resize', checkMobile);
 		};
 	});
 
@@ -72,6 +88,12 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Escape' && isMobile && !$sidebarCollapsed) {
+			event.preventDefault();
+			sidebarCollapsed.set(true);
+			return;
+		}
+
 		for (const shortcut of shortcuts) {
 			if (matchesShortcut(event, shortcut)) {
 				const target = event.target as HTMLElement;
@@ -97,6 +119,12 @@
 			}
 		}
 	}
+
+	function handleEditorFocus() {
+		if (isMobile && !$sidebarCollapsed) {
+			sidebarCollapsed.set(true);
+		}
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -106,14 +134,39 @@
 
 	<div class="flex flex-1 overflow-hidden">
 		<!-- Sidebar -->
-		<div class="w-80 flex-shrink-0 transition-all duration-300" class:hidden={$sidebarCollapsed}>
+		<div
+			class="w-80 flex-shrink-0 transition-all duration-300"
+			class:hidden={$sidebarCollapsed}
+			class:absolute={isMobile && !$sidebarCollapsed}
+			class:inset-y-14={isMobile && !$sidebarCollapsed}
+			class:left-0={isMobile && !$sidebarCollapsed}
+			class:z-30={isMobile && !$sidebarCollapsed}
+			class:shadow-xl={isMobile && !$sidebarCollapsed}
+		>
 			<Sidebar />
 		</div>
 
+		<!-- Overlay for mobile sidebar -->
+		{#if isMobile && !$sidebarCollapsed}
+			<div
+				class="bg-opacity-50 fixed inset-0 z-20 bg-black transition-opacity"
+				on:click={() => sidebarCollapsed.set(true)}
+				role="presentation"
+			></div>
+		{/if}
+
 		<!-- Main Content -->
-		<div class="flex-1 overflow-hidden">
-			<MainEditor />
-		</div>
+		<main class="flex-1 overflow-hidden">
+			<button
+				class="h-full w-full border-0 bg-transparent p-0 text-left outline-none focus:outline-0"
+				bind:this={editorContainer}
+				on:click={handleEditorFocus}
+				type="button"
+				aria-label="Editor area - click to focus and collapse sidebar on mobile"
+			>
+				<MainEditor />
+			</button>
+		</main>
 	</div>
 </div>
 
