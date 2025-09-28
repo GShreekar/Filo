@@ -220,7 +220,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="flex h-full flex-col bg-white dark:bg-gray-800">
+<div class="flex h-screen flex-col bg-white dark:bg-gray-800">
 	{#if $selectedNote}
 		<!-- Header with title and controls -->
 		<div
@@ -363,20 +363,24 @@
 		</div>
 
 		<!-- Editor Content -->
-		<div class="flex-1 overflow-hidden">
+		<div class="flex-1 min-h-0 overflow-hidden">
 			{#if viewMode === 'split' && !isMobile}
 				<div class="flex h-full min-w-0">
-					<div class="min-w-0 flex-1 overflow-hidden border-r border-gray-200 dark:border-gray-700">
+					<div class="min-w-0 flex-1 min-h-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
 						<MarkdownEditor {content} onContentChange={handleContentChange} />
 					</div>
-					<div class="min-w-0 flex-1 overflow-hidden">
+					<div class="min-w-0 flex-1 min-h-0 overflow-y-auto">
 						<MarkdownPreview {content} />
 					</div>
 				</div>
 			{:else if viewMode === 'editor'}
-				<MarkdownEditor {content} onContentChange={handleContentChange} />
+				<div class="h-full overflow-y-auto">
+					<MarkdownEditor {content} onContentChange={handleContentChange} />
+				</div>
 			{:else}
-				<MarkdownPreview {content} />
+				<div class="h-full overflow-y-auto">
+					<MarkdownPreview {content} />
+				</div>
 			{/if}
 		</div>
 

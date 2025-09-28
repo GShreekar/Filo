@@ -68,6 +68,9 @@
 			case 'strikethrough':
 				wrapSelection('~~');
 				break;
+			case 'highlight':
+				wrapSelection('==');
+				break;
 			case 'code':
 				wrapSelection('`');
 				break;
@@ -92,11 +95,37 @@
 			case 'ordered-list':
 				insertText('1. ');
 				break;
+			case 'task-list':
+				insertText('- [ ] Task item\n- [x] Completed task\n- [ ] Another task');
+				break;
 			case 'horizontal-rule':
 				insertText('\n---\n');
 				break;
 			case 'code-block':
-				insertText('\n```\n', -4);
+				insertText('\n```javascript\n', -14);
+				break;
+			case 'table':
+				insertText('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
+				break;
+			case 'footnote':
+				const footnoteNum = Math.floor(Math.random() * 1000) + 1;
+				wrapSelection(`[^${footnoteNum}`, ']');
+				insertText(`\n\n[^${footnoteNum}]: Add your footnote content here`);
+				break;
+			case 'math-inline':
+				wrapSelection('$', '$');
+				break;
+			case 'math-block':
+				insertText('\n$$\n', -3);
+				break;
+			case 'subscript':
+				wrapSelection('~', '~');
+				break;
+			case 'superscript':
+				wrapSelection('^', '^');
+				break;
+			case 'matrix':
+				insertText('\n$$\n\\begin{pmatrix}\na & b \\\\\nc & d\n\\end{pmatrix}\n$$\n');
 				break;
 		}
 	}
@@ -131,7 +160,9 @@
 				},
 				'.cm-scroller': {
 					fontFamily: 'inherit',
-					overflow: 'auto'
+					height: '100%',
+					overflow: 'auto',
+					paddingBottom: '3rem'
 				}
 			})
 		];
@@ -162,10 +193,10 @@
 	}
 </script>
 
-<div class="flex h-full w-full flex-col overflow-hidden">
+<div class="flex h-full w-full flex-col">
 	{#if showToolbar}
 		<MarkdownToolbar on:action={(e) => handleToolbarAction(e.detail)} />
 	{/if}
 
-	<div bind:this={editorElement} class="flex-1 overflow-auto"></div>
+	<div bind:this={editorElement} class="flex-1 min-h-0"></div>
 </div>

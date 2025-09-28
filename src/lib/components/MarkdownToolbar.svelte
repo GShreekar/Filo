@@ -13,7 +13,16 @@
 		List,
 		ListOrdered,
 		Minus,
-		FileCode
+		FileCode,
+		CheckSquare,
+		Table,
+		Subscript,
+		Superscript,
+		Calculator,
+		Highlighter,
+		BookOpen,
+		Hash,
+		Grid3x3
 	} from 'lucide-svelte';
 
 	const dispatch = createEventDispatcher();
@@ -28,7 +37,8 @@
 			items: [
 				{ action: 'bold', icon: Bold, title: 'Bold (Ctrl+B)', shortcut: 'Ctrl+B' },
 				{ action: 'italic', icon: Italic, title: 'Italic (Ctrl+I)', shortcut: 'Ctrl+I' },
-				{ action: 'strikethrough', icon: Strikethrough, title: 'Strikethrough', shortcut: null }
+				{ action: 'strikethrough', icon: Strikethrough, title: 'Strikethrough', shortcut: null },
+				{ action: 'highlight', icon: Highlighter, title: 'Highlight Text', shortcut: null }
 			]
 		},
 		{
@@ -52,7 +62,25 @@
 			items: [
 				{ action: 'unordered-list', icon: List, title: 'Bullet List', shortcut: null },
 				{ action: 'ordered-list', icon: ListOrdered, title: 'Numbered List', shortcut: null },
+				{ action: 'task-list', icon: CheckSquare, title: 'Task List', shortcut: null },
 				{ action: 'quote', icon: Quote, title: 'Quote', shortcut: null }
+			]
+		},
+		{
+			name: 'Advanced',
+			items: [
+				{ action: 'table', icon: Table, title: 'Insert Table', shortcut: null },
+				{ action: 'footnote', icon: BookOpen, title: 'Insert Footnote', shortcut: null },
+				{ action: 'math-inline', icon: Calculator, title: 'Inline Math', shortcut: null },
+				{ action: 'math-block', icon: Calculator, title: 'Math Block', shortcut: null },
+				{ action: 'matrix', icon: Grid3x3, title: 'Insert Matrix', shortcut: null }
+			]
+		},
+		{
+			name: 'Script',
+			items: [
+				{ action: 'subscript', icon: Subscript, title: 'Subscript', shortcut: null },
+				{ action: 'superscript', icon: Superscript, title: 'Superscript', shortcut: null }
 			]
 		},
 		{

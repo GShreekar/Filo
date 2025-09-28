@@ -1,5 +1,9 @@
 @import 'tailwindcss';
 
+@import 'katex/dist/katex.min.css';
+
+@import 'highlight.js/styles/github-dark.css';
+
 .line-clamp-2 {
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
@@ -181,6 +185,7 @@ body {
 	height: 100%;
 	margin: 0;
 	padding: 0;
+	overflow: hidden;
 }
 
 #app {
@@ -243,4 +248,511 @@ body {
 		min-height: 44px;
 		min-width: 44px;
 	}
+}
+
+.prose .task-list-item {
+	list-style: none;
+	margin: 0.25rem 0;
+}
+
+.prose .task-list-item-checkbox {
+	margin-right: 0.5rem;
+	margin-top: 0.125rem;
+}
+
+.prose dt {
+	font-weight: 600;
+	margin-top: 1rem;
+	margin-bottom: 0.25rem;
+}
+
+.prose dd {
+	margin-left: 1.5rem;
+	margin-bottom: 0.5rem;
+	padding-left: 0.5rem;
+	border-left: 2px solid rgb(229 231 235);
+}
+
+.dark .prose dd {
+	border-left-color: rgb(75 85 99);
+}
+
+.math-display {
+	margin: 1rem 0;
+	text-align: center;
+}
+
+.math-display svg {
+	max-width: 100%;
+	height: auto;
+}
+
+.prose pre {
+	background-color: #0d1117 !important;
+	border: 1px solid rgb(55 65 81);
+	border-radius: 0.5rem;
+	overflow-x: auto;
+}
+
+.dark .prose pre {
+	background-color: #0d1117 !important;
+	border-color: rgb(75 85 99);
+}
+
+.prose code {
+	background-color: rgb(243 244 246);
+	color: rgb(239 68 68);
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.25rem;
+	font-size: 0.875em;
+}
+
+.dark .prose code {
+	background-color: rgb(55 65 81);
+	color: rgb(248 113 113);
+}
+
+.prose pre code {
+	background-color: transparent;
+	color: inherit;
+	padding: 0;
+	border-radius: 0;
+	font-size: inherit;
+}
+
+.prose table {
+	display: block;
+	width: 100%;
+	overflow-x: auto;
+	white-space: nowrap;
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+.prose table th,
+.prose table td {
+	min-width: 100px;
+	padding: 0.75rem;
+	text-align: left;
+	border: 1px solid rgb(209 213 219);
+	white-space: pre-wrap;
+}
+
+.dark .prose table th,
+.dark .prose table td {
+	border-color: rgb(75 85 99);
+}
+
+.prose table th {
+	background-color: rgb(249 250 251);
+	font-weight: 600;
+}
+
+.dark .prose table th {
+	background-color: rgb(31 41 55);
+}
+
+.prose s, .prose del {
+	text-decoration: line-through;
+	opacity: 0.7;
+}
+
+.prose mark {
+	background-color: rgb(254 240 138);
+	color: rgb(92 66 16);
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.25rem;
+}
+
+.dark .prose mark {
+	background-color: rgb(217 119 6);
+	color: rgb(254 252 232);
+}
+
+.prose sub,
+.prose sup {
+	font-size: 0.75em;
+	line-height: 0;
+	position: relative;
+	vertical-align: baseline;
+}
+
+.prose sup {
+	top: -0.5em;
+}
+
+.prose sub {
+	bottom: -0.25em;
+}
+
+.prose img[alt$="small"] {
+	max-width: 300px;
+}
+
+.prose img[alt$="medium"] {
+	max-width: 500px;
+}
+
+.prose img[alt$="large"] {
+	max-width: 100%;
+}
+
+.prose abbr {
+	text-decoration: underline dotted;
+	cursor: help;
+}
+
+.prose .task-list-item {
+	list-style: none !important;
+	position: relative;
+	padding-left: 0 !important;
+	margin-left: 0 !important;
+}
+
+.prose .task-list-item input[type="checkbox"] {
+	margin-right: 0.5rem;
+	margin-top: 0;
+	margin-left: 0;
+}
+
+.prose .task-list-item::before {
+	display: none !important;
+}
+
+.prose .task-list-item > input {
+	margin: 0 0.5rem 0 0;
+	vertical-align: middle;
+}
+
+.prose .task-list-item p {
+	display: inline;
+	margin: 0;
+}
+
+.prose .task-list-item {
+	border: none;
+	background: none;
+}
+
+.prose ul.contains-task-list {
+	list-style: none;
+	padding-left: 0;
+}
+
+.prose ul.contains-task-list li {
+	list-style: none !important;
+}
+
+.prose ul {
+	list-style-type: disc;
+	margin: 1rem 0;
+	padding-left: 1.5rem;
+}
+
+.prose ol {
+	list-style-type: decimal;
+	margin: 1rem 0;
+	padding-left: 1.5rem;
+}
+
+.prose li {
+	margin: 0.25rem 0;
+	padding-left: 0;
+}
+
+.prose ul li::marker {
+	color: var(--tw-prose-bullets);
+}
+
+.prose ol li::marker {
+	color: var(--tw-prose-counters);
+}
+
+.prose ul ul,
+.prose ol ol,
+.prose ul ol,
+.prose ol ul {
+	margin: 0.25rem 0;
+}
+
+.prose ul ul {
+	list-style-type: circle;
+}
+
+.prose ul ul ul {
+	list-style-type: square;
+}
+
+.prose table {
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+	margin: 1.5rem 0;
+	font-size: 0.875rem;
+}
+
+.prose table th {
+	background-color: #f9fafb;
+	font-weight: 600;
+	text-align: left;
+	padding: 0.75rem;
+	border: 1px solid #e5e7eb;
+}
+
+.prose table td {
+	padding: 0.75rem;
+	border: 1px solid #e5e7eb;
+	vertical-align: top;
+}
+
+.dark .prose table th {
+	background-color: #374151;
+	border-color: #4b5563;
+	color: #f9fafb;
+}
+
+.dark .prose table td {
+	border-color: #4b5563;
+}
+
+.prose dt {
+	font-weight: 600;
+	margin-top: 1rem;
+	color: var(--tw-prose-headings);
+}
+
+.prose dd {
+	margin-left: 1.5rem;
+	margin-top: 0.25rem;
+	color: var(--tw-prose-body);
+}
+
+.prose sub,
+.prose sup {
+	font-size: 0.75em;
+	line-height: 0;
+	position: relative;
+	vertical-align: baseline;
+}
+
+.prose sup {
+	top: -0.5em;
+}
+
+.prose sub {
+	bottom: -0.25em;
+}
+
+.prose .math-display {
+	margin: 1.5rem 0;
+	text-align: center;
+	overflow-x: auto;
+	overflow-y: hidden;
+	display: block !important;
+	width: 100%;
+}
+
+.prose .math-display .MathJax {
+	display: block !important;
+	text-align: center;
+	margin: 0 auto;
+}
+
+.prose .math-display mjx-container {
+	display: block !important;
+	text-align: center;
+	margin: 0 auto;
+}
+
+.prose .math-display mjx-math {
+	display: inline-block !important;
+}
+
+.prose .math-display mjx-mrow {
+	display: inline !important;
+}
+
+.prose .math-display mjx-mtable {
+	display: inline-table !important;
+	vertical-align: middle;
+	min-width: auto !important;
+	width: auto !important;
+}
+
+.prose .math-display mjx-mtr {
+	display: table-row !important;
+	height: auto !important;
+	min-height: 1.2em !important;
+}
+
+.prose .math-display mjx-mtd {
+	display: table-cell !important;
+	padding: 0.4em 0.6em !important;
+	text-align: center;
+	vertical-align: middle;
+	white-space: nowrap;
+	min-width: 1.5em;
+}
+
+.prose .math-display mjx-mo[data-semantic-type="fence"] {
+	font-size: 1.2em !important;
+	vertical-align: middle;
+}
+
+.prose .math-display mjx-mrow mjx-mtable {
+	display: inline-table !important;
+	vertical-align: middle;
+	margin: 0 0.2em;
+}
+
+.prose .math-display mjx-stretchy-v {
+	display: inline-flex !important;
+	align-items: center;
+	min-height: 2.5em !important;
+}
+
+.prose .math-display mjx-stretchy-v mjx-c {
+	transform-origin: center;
+}
+
+.prose .math-display mjx-mtable mjx-mtr mjx-mtd {
+	line-height: 1.4 !important;
+	padding: 0.3em 0.5em !important;
+}
+
+.prose .math-inline {
+	display: inline !important;
+}
+
+.prose .math-inline .MathJax {
+	display: inline !important;
+	vertical-align: middle;
+}
+
+.prose .math-error {
+	color: #dc2626;
+	background-color: #fef2f2;
+	padding: 0.25rem;
+	border-radius: 0.25rem;
+	font-family: monospace;
+	font-size: 0.875em;
+}
+
+.dark .prose .math-error {
+	color: #fca5a5;
+	background-color: #7f1d1d;
+}
+
+.prose pre {
+	background-color: #1f2937 !important;
+	border-radius: 0.5rem;
+	padding: 1rem;
+	overflow-x: auto;
+}
+
+.prose pre code {
+	background-color: transparent !important;
+	padding: 0 !important;
+	border-radius: 0 !important;
+	font-size: 0.875rem;
+}
+
+.prose code:not(pre code) {
+	background-color: #f3f4f6;
+	color: #1f2937;
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.25rem;
+	font-size: 0.875em;
+}
+
+.dark .prose code:not(pre code) {
+	background-color: #374151;
+	color: #f3f4f6;
+}
+
+.prose del,
+.prose s {
+	text-decoration: line-through;
+	opacity: 0.7;
+}
+
+.prose mark {
+	background-color: #fef08a;
+	color: #78350f;
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.125rem;
+}
+
+.dark .prose mark {
+	background-color: #ca8a04;
+	color: #fefce8;
+}
+
+:global(.katex-display) {
+	margin: 0 !important;
+	line-height: 1 !important;
+	display: block;
+	text-align: center;
+}
+
+:global(.katex-display .katex) {
+	line-height: 1 !important;
+}
+
+:global(.katex .base, .katex .strut) {
+	line-height: 1 !important;
+	display: inline-block;
+}
+
+:global(.katex-mathml) {
+	display: none;
+}
+
+:global(.katex) {
+	vertical-align: middle;
+}
+
+:global(.katex-display svg) {
+	vertical-align: top;
+	height: auto;
+}
+
+:global(p:has(.katex-display)) {
+	margin: 0;
+}
+
+:global(.katex-display + br), 
+:global(br + .katex-display) {
+	display: none;
+}
+
+:global(.katex-display .mord, .katex-display .mrel, .katex-display .mbin, .katex-display .mopen, .katex-display .mclose) {
+	line-height: 1 !important;
+}
+
+:global(.katex-display .delimsizing, .katex-display .delim-size1, .katex-display .delim-size2, .katex-display .delim-size3, .katex-display .delim-size4) {
+	line-height: 1 !important;
+	vertical-align: top;
+}
+
+:global(.katex-display .mtable, .katex-display .arraycolsep, .katex-display .col-align-c) {
+	line-height: 1 !important;
+}
+
+:global(.katex-display span) {
+	line-height: 1 !important;
+}
+
+:global(.katex-display .delimcenter, .katex-display .pstrut) {
+	line-height: 1 !important;
+}
+
+:global(.katex-display *) {
+	line-height: 1 !important;
+	margin-top: 0 !important;
+	margin-bottom: 0 !important;
+}
+
+:global(.katex-display .mtable .col-align-c) {
+	vertical-align: middle;
 }

@@ -161,7 +161,7 @@
 		<!-- Main Content -->
 		<main class="flex-1 overflow-hidden">
 			<button
-				class="h-full w-full border-0 bg-transparent p-0 text-left outline-none focus:outline-0"
+				class="h-full w-full border-0 bg-transparent p-0 text-left outline-none focus:outline-0 overflow-hidden"
 				bind:this={editorContainer}
 				on:click={handleEditorFocus}
 				type="button"
