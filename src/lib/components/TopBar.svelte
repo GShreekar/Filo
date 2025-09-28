@@ -121,6 +121,9 @@
 	function selectSearchResult(result: any, index: number) {
 		if (result.type === 'note' && result.noteResult) {
 			selectedNote.set(result.noteResult.note);
+			if (typeof window !== 'undefined' && window.innerWidth < 768) {
+				sidebarCollapsed.set(true);
+			}
 		} else if (result.type === 'folder' && result.folderResult) {
 			console.log('Selected folder:', result.folderResult.folder.name);
 		}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { selectedNote, notes } from '$lib/stores';
+	import { selectedNote, notes, sidebarCollapsed } from '$lib/stores';
 	import {
 		scheduleContentSave,
 		scheduleTitleSave,
@@ -433,6 +433,9 @@
 									const newNote = $notes.find((n) => n.id === noteId);
 									if (newNote) {
 										selectedNote.set(newNote);
+										if (typeof window !== 'undefined' && window.innerWidth < 768) {
+											sidebarCollapsed.set(true);
+										}
 									} else {
 										setTimeout(checkForNote, 100);
 									}

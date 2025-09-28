@@ -60,6 +60,9 @@
 						const newNote = $notes.find((n) => n.id === noteId);
 						if (newNote) {
 							selectedNote.set(newNote);
+							if (isMobile) {
+								sidebarCollapsed.set(true);
+							}
 						} else {
 							setTimeout(checkForNote, 100);
 						}

@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import { updateNote } from './firebase-service';
+import { showError } from './error-store';
 
 interface AutoSaveState {
 	noteId: string | null;
@@ -9,6 +10,7 @@ interface AutoSaveState {
 	titleDirty: boolean;
 	lastSaved: Date | null;
 	isSaving: boolean;
+	retryCount: number;
 }
 
 export const autoSaveState = writable<AutoSaveState>({
@@ -18,15 +20,46 @@ export const autoSaveState = writable<AutoSaveState>({
 	contentDirty: false,
 	titleDirty: false,
 	lastSaved: null,
-	isSaving: false
+	isSaving: false,
+	retryCount: 0
 });
 
 let debounceTimer: NodeJS.Timeout;
 let titleDebounceTimer: NodeJS.Timeout;
+let retryTimer: NodeJS.Timeout | null = null;
+
+const MAX_RETRY_ATTEMPTS = 5;
+const BASE_RETRY_DELAY = 1000;
+
+let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+if (typeof window !== 'undefined') {
+	window.addEventListener('online', handleNetworkOnline);
+	window.addEventListener('offline', handleNetworkOffline);
+}
+
+function handleNetworkOffline() {
+	isOnline = false;
+	console.log('Network went offline');
+}
+
+function handleNetworkOnline() {
+	isOnline = true;
+	console.log('Network came back online');
+	
+	const state = get(autoSaveState);
+	if (state.isSaving && state.noteId && (state.contentDirty || state.titleDirty)) {
+		console.log('Network restored, retrying pending save');
+		autoSaveState.update((s) => ({ ...s, retryCount: 0 }));
+		performSave(state.noteId, true).catch(() => {
+			// Error handling is done in performSave
+		});
+	}
+}
 
 async function performSave(noteId: string, silent: boolean = false): Promise<void> {
 	if (!silent) {
-		autoSaveState.update((state) => ({ ...state, isSaving: true }));
+		autoSaveState.update((state) => ({ ...state, isSaving: true, retryCount: 0 }));
 	}
 
 	try {
@@ -45,12 +78,36 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 			contentDirty: false,
 			titleDirty: false,
 			lastSaved: new Date(),
-			isSaving: false
+			isSaving: false,
+			retryCount: 0
 		}));
 	} catch (error) {
 		console.error('Save failed:', error);
-		autoSaveState.update((state) => ({ ...state, isSaving: false }));
-		throw error;
+		
+		const state = get(autoSaveState);
+		
+		if (state.retryCount >= MAX_RETRY_ATTEMPTS) {
+			autoSaveState.update((s) => ({ ...s, isSaving: false, retryCount: 0 }));
+			showError('Failed to save changes after multiple attempts. Please check your connection and try again.', 'error');
+			throw error;
+		}
+
+		const retryDelay = BASE_RETRY_DELAY * Math.pow(2, state.retryCount);
+		autoSaveState.update((s) => ({ ...s, retryCount: s.retryCount + 1 }));
+		
+		console.log(`Retrying save in ${retryDelay}ms (attempt ${state.retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
+		
+		if (retryTimer) clearTimeout(retryTimer);
+		retryTimer = setTimeout(async () => {
+			const currentState = get(autoSaveState);
+			if (currentState.noteId === noteId && (currentState.contentDirty || currentState.titleDirty)) {
+				try {
+					await performSave(noteId, true);
+				} catch (retryError) {
+					// Error handling is already done in performSave
+				}
+			}
+		}, retryDelay);
 	}
 }
 
@@ -115,6 +172,7 @@ export async function saveCurrentNoteIfDirty(noteId: string, content?: string): 
 export function clearAutoSaveState() {
 	clearTimeout(debounceTimer);
 	clearTimeout(titleDebounceTimer);
+	if (retryTimer) clearTimeout(retryTimer);
 
 	autoSaveState.set({
 		noteId: null,
@@ -123,7 +181,8 @@ export function clearAutoSaveState() {
 		contentDirty: false,
 		titleDirty: false,
 		lastSaved: null,
-		isSaving: false
+		isSaving: false,
+		retryCount: 0
 	});
 }
 
@@ -143,7 +202,8 @@ export async function setInitialNoteState(noteId: string, content: string, title
 		contentDirty: false,
 		titleDirty: false,
 		lastSaved: null,
-		isSaving: false
+		isSaving: false,
+		retryCount: 0
 	});
 }
 

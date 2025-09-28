@@ -84,6 +84,10 @@
 		selectedNote.set(note);
 		const folder = $folders.find((f) => f.id === note.folderId);
 		selectedFolder.set(folder?.id || null);
+		
+		if (typeof window !== 'undefined' && window.innerWidth < 768) {
+			sidebarCollapsed.set(true);
+		}
 	}
 
 	async function startEditingNoteTitle(noteId: string, currentTitle: string) {
