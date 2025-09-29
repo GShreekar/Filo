@@ -1,7 +1,7 @@
 <script lang="ts">
 	import MarkdownIt from 'markdown-it';
 	// @ts-ignore
-	import markdownItKatex from 'markdown-it-katex';
+	import markdownItKatex from '@traptitech/markdown-it-katex';
 	// @ts-ignore
 	import markdownItTable from 'markdown-it-multimd-table';
 	// @ts-ignore
@@ -43,7 +43,10 @@
 			linkify: true,
 			typographer: true,
 			breaks: true
-		}).use(markdownItKatex);
+		}).use(markdownItKatex, {
+			throwOnError: false,
+			errorColor: '#cc0000'
+		});
 
 		try {
 			md.use(markdownItTable, {
