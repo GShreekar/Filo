@@ -19,7 +19,8 @@
 		deleteFolder,
 		deleteNote,
 		updateFolder,
-		updateNote
+		updateNote,
+		moveNote
 	} from '$lib/firebase-service';
 	import { searchAll, highlightText, formatTimeAgo } from '$lib/search-service';
 	import { showError } from '$lib/error-store';
@@ -67,6 +68,10 @@
 
 	let confirmModalVisible = false;
 	let inputModalVisible = false;
+
+	let draggedNoteId: string | null = null;
+	let dragOverFolderId: string | null = null;
+	let dragOverStandalone = false;
 
 	$: confirmModalVisible = $confirmModal.visible;
 	$: inputModalVisible = $inputModal.visible;
@@ -462,6 +467,90 @@
 			searchContextMenuVisible = false;
 		}
 	}
+
+	function handleDragStart(event: DragEvent, noteId: string) {
+		if (event.dataTransfer) {
+			draggedNoteId = noteId;
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', noteId);
+		}
+	}
+
+	function handleDragEnd(event: DragEvent) {
+		draggedNoteId = null;
+		dragOverFolderId = null;
+		dragOverStandalone = false;
+	}
+
+	async function handleFolderDrop(event: DragEvent, folderId: string) {
+		event.preventDefault();
+		
+		if (draggedNoteId) {
+			const draggedNote = $notes.find(n => n.id === draggedNoteId);
+			if (draggedNote && draggedNote.folderId !== folderId) {
+				try {
+					await moveNote(draggedNoteId, folderId);
+				} catch (error) {
+					console.error('Failed to move note:', error);
+				}
+			}
+		}
+		
+		draggedNoteId = null;
+		dragOverFolderId = null;
+	}
+
+	function handleFolderDragOver(event: DragEvent, folderId: string) {
+		if (draggedNoteId) {
+			event.preventDefault();
+			event.dataTransfer!.dropEffect = 'move';
+			dragOverFolderId = folderId;
+		}
+	}
+
+	function handleFolderDragLeave(event: DragEvent) {
+		const target = event.currentTarget as HTMLElement;
+		const relatedTarget = event.relatedTarget as HTMLElement;
+		
+		if (!target.contains(relatedTarget)) {
+			dragOverFolderId = null;
+		}
+	}
+
+	async function handleStandaloneDrop(event: DragEvent) {
+		event.preventDefault();
+		
+		if (draggedNoteId) {
+			const draggedNote = $notes.find(n => n.id === draggedNoteId);
+			if (draggedNote && draggedNote.folderId !== null) {
+				try {
+					await moveNote(draggedNoteId, null);
+				} catch (error) {
+					console.error('Failed to move note:', error);
+				}
+			}
+		}
+		
+		draggedNoteId = null;
+		dragOverStandalone = false;
+	}
+
+	function handleStandaloneDragOver(event: DragEvent) {
+		if (draggedNoteId) {
+			event.preventDefault();
+			event.dataTransfer!.dropEffect = 'move';
+			dragOverStandalone = true;
+		}
+	}
+
+	function handleStandaloneDragLeave(event: DragEvent) {
+		const target = event.currentTarget as HTMLElement;
+		const relatedTarget = event.relatedTarget as HTMLElement;
+		
+		if (!target.contains(relatedTarget)) {
+			dragOverStandalone = false;
+		}
+	}
 </script>
 
 <svelte:window on:click={handleGlobalClick} />
@@ -630,14 +719,27 @@
 			<!-- Folder Tree -->
 			<div class="p-2">
 				<!-- Standalone Notes -->
-				{#if standaloneNotes.length > 0}
-					<div class="mb-4">
-						<h3 class="mb-2 px-2 text-sm font-medium text-gray-500 dark:text-gray-400">Notes</h3>
+				<div 
+					class="mb-4"
+					class:bg-blue-50={dragOverStandalone}
+					class:dark:bg-blue-900={dragOverStandalone}
+					role="region"
+					aria-label="Standalone notes drop zone"
+					on:dragover={handleStandaloneDragOver}
+					on:dragleave={handleStandaloneDragLeave}
+					on:drop={handleStandaloneDrop}
+				>
+					<h3 class="mb-2 px-2 text-sm font-medium text-gray-500 dark:text-gray-400">Notes</h3>
+					{#if standaloneNotes.length > 0}
 						{#each standaloneNotes as note}
 							<div
 								class="group flex items-center justify-between"
+								class:opacity-50={draggedNoteId === note.id}
 								role="menuitem"
 								tabindex="-1"
+								draggable="true"
+								on:dragstart={(e) => handleDragStart(e, note.id)}
+								on:dragend={handleDragEnd}
 								on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
 							>
 								<button
@@ -677,8 +779,12 @@
 								</button>
 							</div>
 						{/each}
-					</div>
-				{/if}
+					{:else}
+						<div class="p-2 text-xs text-gray-500 italic dark:text-gray-400 min-h-[2rem] flex items-center">
+							No standalone notes yet
+						</div>
+					{/if}
+				</div>
 
 				<!-- Folders -->
 				{#if $folders.length > 0}
@@ -692,9 +798,14 @@
 						<!-- Folder Header -->
 						<div
 							class="group flex items-center justify-between"
+							class:bg-blue-50={dragOverFolderId === folder.id}
+							class:dark:bg-blue-900={dragOverFolderId === folder.id}
 							role="menuitem"
 							tabindex="-1"
 							on:contextmenu={(e) => showContextMenu(e, 'folder', folder.id, folder.name)}
+							on:dragover={(e) => handleFolderDragOver(e, folder.id)}
+							on:dragleave={handleFolderDragLeave}
+							on:drop={(e) => handleFolderDrop(e, folder.id)}
 						>
 							<button
 								on:click={() => toggleFolder(folder.id)}
@@ -718,8 +829,12 @@
 								{#each folderNotes[folder.id] || [] as note (note.id)}
 									<div
 										class="group flex items-center justify-between"
+										class:opacity-50={draggedNoteId === note.id}
 										role="menuitem"
 										tabindex="-1"
+										draggable="true"
+										on:dragstart={(e) => handleDragStart(e, note.id)}
+										on:dragend={handleDragEnd}
 										on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
 									>
 										<button

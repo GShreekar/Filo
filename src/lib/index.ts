@@ -31,6 +31,7 @@ export {
 	deleteFolder,
 	createNote,
 	updateNote,
+	moveNote,
 	deleteNote,
 	subscribeFolders,
 	subscribeNotes

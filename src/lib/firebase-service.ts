@@ -122,6 +122,23 @@ export async function updateNote(
 	}
 }
 
+export async function moveNote(id: string, newFolderId: string | null): Promise<void> {
+	try {
+		isSaving.set(true);
+		await updateDoc(doc(db, 'notes', id), {
+			folderId: newFolderId,
+			updatedAt: Timestamp.now()
+		});
+		showError('Note moved successfully', 'success');
+	} catch (error) {
+		console.error('Error moving note:', error);
+		showError('Failed to move note. Please try again.');
+		throw error;
+	} finally {
+		isSaving.set(false);
+	}
+}
+
 export async function deleteNote(id: string): Promise<void> {
 	try {
 		isLoading.set(true);
