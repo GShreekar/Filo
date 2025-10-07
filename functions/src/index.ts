@@ -1,7 +1,8 @@
 import {setGlobalOptions} from "firebase-functions";
 import {onCall} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
 setGlobalOptions({ maxInstances: 10 });
 
@@ -36,9 +37,10 @@ export const generatePDF = onCall<PDFGenerationRequest>(
 
       const { html, title } = request.data;
 
+      // Launch Puppeteer with serverless Chromium for cloud environment
       const browser = await puppeteer.launch({
-        headless: true,
         args: [
+          ...chromium.args,
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
@@ -46,8 +48,14 @@ export const generatePDF = onCall<PDFGenerationRequest>(
           '--no-first-run',
           '--no-zygote',
           '--single-process',
-          '--disable-gpu'
-        ]
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ],
+        defaultViewport: { width: 1280, height: 720 },
+        executablePath: await chromium.executablePath(),
+        headless: true,
+        ignoreDefaultArgs: ['--disable-extensions']
       });
 
       try {
