@@ -2,8 +2,9 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import type { Note, Folder } from './types';
 import sanitizeFilename from 'sanitize-filename';
+import { generateNotePDF, generateFolderPDFs } from './pdf-service';
 
-export type ExportFormat = 'markdown';
+export type ExportFormat = 'markdown' | 'pdf';
 
 export async function exportNote(note: Note, format: ExportFormat): Promise<void> {
 	const safeFilename = sanitizeFilename(note.title) || 'untitled';
@@ -12,13 +13,17 @@ export async function exportNote(note: Note, format: ExportFormat): Promise<void
 		case 'markdown':
 			exportMarkdownFile(safeFilename, note.content);
 			break;
+		case 'pdf':
+			await exportPDFFile(safeFilename, note.title, note.content);
+			break;
 	}
 }
 
 export async function exportFolder(
 	folder: Folder,
 	allNotes: Note[],
-	format: ExportFormat
+	format: ExportFormat,
+	onProgress?: (completed: number, total: number, currentItem: string) => void
 ): Promise<void> {
 	const folderNotes = allNotes.filter((note) => note.folderId === folder.id);
 
@@ -35,14 +40,29 @@ export async function exportFolder(
 		throw new Error('Failed to create folder in ZIP');
 	}
 
-	for (const note of folderNotes) {
-		const safeFilename = sanitizeFilename(note.title) || 'untitled';
-
-		switch (format) {
-			case 'markdown':
+	switch (format) {
+		case 'markdown':
+			for (let i = 0; i < folderNotes.length; i++) {
+				const note = folderNotes[i];
+				const safeFilename = sanitizeFilename(note.title) || 'untitled';
 				folderZip.file(`${safeFilename}.md`, note.content);
-				break;
-		}
+				
+				if (onProgress) {
+					onProgress(i + 1, folderNotes.length, note.title);
+				}
+			}
+			break;
+		case 'pdf':
+			const pdfResults = await generateFolderPDFs(
+				folderNotes.map(note => ({ title: note.title, content: note.content })),
+				onProgress
+			);
+			
+			for (const { title, pdfData } of pdfResults) {
+				const safeFilename = sanitizeFilename(title) || 'untitled';
+				folderZip.file(`${safeFilename}.pdf`, pdfData);
+			}
+			break;
 	}
 
 	const blob = await zip.generateAsync({ type: 'blob' });
@@ -54,6 +74,10 @@ export async function exportWorkspace(
 	allNotes: Note[],
 	format: ExportFormat
 ): Promise<void> {
+	if (format !== 'markdown') {
+		throw new Error('Workspace export only supports markdown format');
+	}
+
 	const zip = new JSZip();
 
 	const standaloneNotes = allNotes.filter((note) => !note.folderId);
@@ -62,12 +86,7 @@ export async function exportWorkspace(
 
 		for (const note of standaloneNotes) {
 			const safeFilename = sanitizeFilename(note.title) || 'untitled';
-
-			switch (format) {
-				case 'markdown':
-					standaloneFolder?.file(`${safeFilename}.md`, note.content);
-					break;
-			}
+			standaloneFolder?.file(`${safeFilename}.md`, note.content);
 		}
 	}
 
@@ -80,12 +99,7 @@ export async function exportWorkspace(
 
 		for (const note of folderNotes) {
 			const safeFilename = sanitizeFilename(note.title) || 'untitled';
-
-			switch (format) {
-				case 'markdown':
-					folderZip?.file(`${safeFilename}.md`, note.content);
-					break;
-			}
+			folderZip?.file(`${safeFilename}.md`, note.content);
 		}
 	}
 
@@ -97,6 +111,12 @@ export async function exportWorkspace(
 function exportMarkdownFile(filename: string, content: string): void {
 	const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
 	saveAs(blob, `${filename}.md`);
+}
+
+async function exportPDFFile(filename: string, title: string, content: string): Promise<void> {
+	const pdfData = await generateNotePDF(title, content);
+	const blob = new Blob([new Uint8Array(pdfData)], { type: 'application/pdf' });
+	saveAs(blob, `${filename}.pdf`);
 }
 
 export interface ImportResult {

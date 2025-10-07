@@ -17,11 +17,22 @@
 	let selectedFormat: ExportFormat = 'markdown';
 	let isExporting = false;
 	let exportError = '';
+	let exportProgress = { completed: 0, total: 0, currentItem: '' };
+
+	$: if (exportType === 'workspace') {
+		selectedFormat = 'markdown';
+	}
+
+	$: availableFormats = exportType === 'workspace' 
+		? ['markdown'] as const
+		: ['markdown', 'pdf'] as const;
 
 	function close() {
 		visible = false;
 		exportError = '';
 		isExporting = false;
+		selectedFormat = 'markdown';
+		exportProgress = { completed: 0, total: 0, currentItem: '' };
 	}
 
 	async function handleExport() {
@@ -29,12 +40,20 @@
 
 		isExporting = true;
 		exportError = '';
+		exportProgress = { completed: 0, total: 0, currentItem: '' };
 
 		try {
 			if (exportType === 'note' && targetNote) {
 				await exportNote(targetNote, selectedFormat);
 			} else if (exportType === 'folder' && targetFolder) {
-				await exportFolder(targetFolder, $notes, selectedFormat);
+				await exportFolder(
+					targetFolder, 
+					$notes, 
+					selectedFormat,
+					(completed, total, currentItem) => {
+						exportProgress = { completed, total, currentItem };
+					}
+				);
 			} else if (exportType === 'workspace') {
 				await exportWorkspace($folders, $notes, selectedFormat);
 			}
@@ -61,10 +80,21 @@
 
 	$: description =
 		exportType === 'note'
-			? 'Export this note as markdown'
+			? 'Choose format to export this note'
 			: exportType === 'folder'
-				? 'Export all notes in this folder as markdown files'
+				? 'Choose format to export all notes in this folder'
 				: 'Export all notes and folders as markdown files in a ZIP archive';
+
+	$: formatDescription = {
+		markdown: exportType === 'note' 
+			? 'Export as raw markdown (.md) file'
+			: exportType === 'folder'
+				? 'Export all notes as markdown files in a ZIP archive'
+				: 'Export all notes and folders as markdown files in a ZIP archive with complete folder hierarchy preserved',
+		pdf: exportType === 'note'
+			? 'Export as formatted PDF file'
+			: 'Export all notes as PDF files in a ZIP archive'
+	};
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -95,6 +125,37 @@
 			</p>
 
 			<div class="space-y-4">
+				<!-- Format Selection -->
+				{#if exportType !== 'workspace'}
+					<fieldset>
+						<legend class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+							Export Format
+						</legend>
+						<div class="space-y-2">
+							{#each availableFormats as format}
+								<label class="flex items-center space-x-3 cursor-pointer">
+									<input
+										type="radio"
+										bind:group={selectedFormat}
+										value={format}
+										disabled={isExporting}
+										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+									/>
+									<div class="flex-1">
+										<div class="text-sm font-medium text-gray-900 dark:text-white">
+											{format === 'markdown' ? 'Markdown' : 'PDF'}
+										</div>
+										<div class="text-xs text-gray-600 dark:text-gray-400">
+											{formatDescription[format]}
+										</div>
+									</div>
+								</label>
+							{/each}
+						</div>
+					</fieldset>
+				{/if}
+
+				<!-- Export Info -->
 				<div
 					class="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20"
 				>
@@ -107,13 +168,7 @@
 							<FileText size={16} class="mt-0.5 text-blue-600 dark:text-blue-400" />
 						{/if}
 						<div class="text-sm text-blue-800 dark:text-blue-200">
-							{#if exportType === 'note'}
-								Note will be exported as raw markdown (.md) file.
-							{:else if exportType === 'folder'}
-								All notes in the folder will be exported as markdown files in a ZIP archive with folder structure preserved.
-							{:else}
-								All notes and folders will be exported as markdown files in a ZIP archive with complete folder hierarchy preserved.
-							{/if}
+							{formatDescription[selectedFormat]}
 						</div>
 					</div>
 				</div>
@@ -125,6 +180,36 @@
 						<p class="text-sm text-red-800 dark:text-red-200">
 							{exportError}
 						</p>
+					</div>
+				{/if}
+
+				<!-- Progress Indicator -->
+				{#if isExporting && exportProgress.total > 0}
+					<div class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+						<div class="space-y-3">
+							<div class="flex items-center justify-between">
+								<span class="text-sm font-medium text-blue-800 dark:text-blue-200">
+									{selectedFormat === 'pdf' ? 'Generating PDFs...' : 'Processing files...'}
+								</span>
+								<span class="text-sm text-blue-600 dark:text-blue-300">
+									{exportProgress.completed}/{exportProgress.total}
+								</span>
+							</div>
+							
+							<!-- Progress Bar -->
+							<div class="w-full bg-blue-200 rounded-full h-2 dark:bg-blue-800">
+								<div 
+									class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+									style="width: {(exportProgress.completed / exportProgress.total) * 100}%"
+								></div>
+							</div>
+							
+							{#if exportProgress.currentItem}
+								<p class="text-xs text-blue-700 dark:text-blue-300 truncate">
+									Current: {exportProgress.currentItem}
+								</p>
+							{/if}
+						</div>
 					</div>
 				{/if}
 			</div>
