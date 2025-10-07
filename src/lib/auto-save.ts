@@ -46,7 +46,7 @@ function handleNetworkOffline() {
 function handleNetworkOnline() {
 	isOnline = true;
 	console.log('Network came back online');
-	
+
 	const state = get(autoSaveState);
 	if (state.isSaving && state.noteId && (state.contentDirty || state.titleDirty)) {
 		console.log('Network restored, retrying pending save');
@@ -83,24 +83,32 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 		}));
 	} catch (error) {
 		console.error('Save failed:', error);
-		
+
 		const state = get(autoSaveState);
-		
+
 		if (state.retryCount >= MAX_RETRY_ATTEMPTS) {
 			autoSaveState.update((s) => ({ ...s, isSaving: false, retryCount: 0 }));
-			showError('Failed to save changes after multiple attempts. Please check your connection and try again.', 'error');
+			showError(
+				'Failed to save changes after multiple attempts. Please check your connection and try again.',
+				'error'
+			);
 			throw error;
 		}
 
 		const retryDelay = BASE_RETRY_DELAY * Math.pow(2, state.retryCount);
 		autoSaveState.update((s) => ({ ...s, retryCount: s.retryCount + 1 }));
-		
-		console.log(`Retrying save in ${retryDelay}ms (attempt ${state.retryCount + 1}/${MAX_RETRY_ATTEMPTS})`);
-		
+
+		console.log(
+			`Retrying save in ${retryDelay}ms (attempt ${state.retryCount + 1}/${MAX_RETRY_ATTEMPTS})`
+		);
+
 		if (retryTimer) clearTimeout(retryTimer);
 		retryTimer = setTimeout(async () => {
 			const currentState = get(autoSaveState);
-			if (currentState.noteId === noteId && (currentState.contentDirty || currentState.titleDirty)) {
+			if (
+				currentState.noteId === noteId &&
+				(currentState.contentDirty || currentState.titleDirty)
+			) {
 				try {
 					await performSave(noteId, true);
 				} catch (retryError) {

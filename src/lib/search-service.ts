@@ -1,4 +1,4 @@
-import type { Note, Folder, SearchResult } from './types';
+import type { Folder, Note } from './types';
 import { notes, folders } from './stores';
 import { get } from 'svelte/store';
 

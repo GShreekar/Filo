@@ -20,12 +20,12 @@
 
 	$: getTransformStyle = (errorId: string) => {
 		let baseStyle = 'touch-action: none;';
-		
+
 		if (draggedToastId === errorId && isDragging && dragDistance > 0) {
-			const scale = Math.max(0.95, 1 - (dragDistance / 200));
-			const opacity = Math.max(0.6, 1 - (dragDistance / 100));
+			const scale = Math.max(0.95, 1 - dragDistance / 200);
+			const opacity = Math.max(0.6, 1 - dragDistance / 100);
 			const blur = dragDistance > swipeThreshold * 0.5 ? 'blur(1px)' : 'none';
-			
+
 			let transform = '';
 			if (dragDirection === 'horizontal') {
 				const translateX = dragDistance;
@@ -34,10 +34,10 @@
 				const translateY = dragDistance;
 				transform = `translateY(${translateY}px) scale(${scale})`;
 			}
-			
+
 			baseStyle += ` transform: ${transform}; opacity: ${opacity}; filter: ${blur};`;
 		}
-		
+
 		return baseStyle;
 	};
 
@@ -108,32 +108,32 @@
 		dragDirection = null;
 		draggedToastId = errorId;
 		capturedPointerId = event.pointerId;
-		
+
 		const target = event.currentTarget as HTMLElement;
 		target.setPointerCapture(event.pointerId);
-		
+
 		event.preventDefault();
 	}
 
 	function handlePointerMove(event: PointerEvent) {
 		if (!isMobile || !draggedToastId || event.pointerId !== capturedPointerId) return;
-		
+
 		const currentX = event.clientX;
 		const currentY = event.clientY;
 		const deltaX = currentX - pointerStartX;
 		const deltaY = currentY - pointerStartY;
-		
+
 		if (!dragDirection && (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10)) {
 			dragDirection = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'vertical';
 		}
-		
+
 		if (dragDirection === 'horizontal') {
 			const distance = Math.abs(deltaX);
 			if (distance > 5) {
 				isDragging = true;
 				dragDistance = Math.min(distance * 0.8, 120);
 				event.preventDefault();
-				
+
 				if (distance > swipeThreshold) {
 					clearError(draggedToastId);
 					isDragging = false;
@@ -147,7 +147,7 @@
 			isDragging = true;
 			dragDistance = Math.min(deltaY * 0.8, 120);
 			event.preventDefault();
-			
+
 			if (deltaY > swipeThreshold) {
 				clearError(draggedToastId);
 				isDragging = false;
@@ -160,7 +160,13 @@
 	}
 
 	function handlePointerUp(event: PointerEvent, errorId: string) {
-		if (!isMobile || !draggedToastId || errorId !== draggedToastId || event.pointerId !== capturedPointerId) return;
+		if (
+			!isMobile ||
+			!draggedToastId ||
+			errorId !== draggedToastId ||
+			event.pointerId !== capturedPointerId
+		)
+			return;
 
 		const target = event.currentTarget as HTMLElement;
 		if (capturedPointerId !== null) {
@@ -171,13 +177,14 @@
 			target.style.transform = '';
 			target.style.opacity = '';
 			target.style.filter = '';
-			target.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out, filter 0.2s ease-out';
-			
+			target.style.transition =
+				'transform 0.2s ease-out, opacity 0.2s ease-out, filter 0.2s ease-out';
+
 			setTimeout(() => {
 				target.style.transition = '';
 			}, 200);
 		}
-		
+
 		isDragging = false;
 		draggedToastId = null;
 		dragDistance = 0;
@@ -193,7 +200,6 @@
 	}
 </script>
 
-<!-- Desktop: top-right, Mobile: bottom-center with safe areas -->
 <div
 	class="fixed top-4 right-4
 		z-50 max-w-md space-y-2
@@ -233,9 +239,7 @@
 						{error.timestamp.toLocaleTimeString()}
 					</p>
 					{#if isMobile}
-						<p class="mt-1 text-xs opacity-60">
-							Swipe to dismiss
-						</p>
+						<p class="mt-1 text-xs opacity-60">Swipe to dismiss</p>
 					{/if}
 				</div>
 			</div>
@@ -250,7 +254,6 @@
 		</button>
 	{/each}
 
-	<!-- Show "+N more" indicator when there are hidden toasts -->
 	{#if hiddenCount > 0}
 		<div
 			class="flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 text-sm text-gray-600 shadow-lg dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300

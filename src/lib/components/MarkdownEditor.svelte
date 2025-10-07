@@ -105,7 +105,9 @@
 				insertText('\n```javascript\n', -14);
 				break;
 			case 'table':
-				insertText('\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n');
+				insertText(
+					'\n| Column 1 | Column 2 | Column 3 |\n|----------|----------|----------|\n| Cell 1   | Cell 2   | Cell 3   |\n| Cell 4   | Cell 5   | Cell 6   |\n'
+				);
 				break;
 			case 'footnote':
 				const footnoteNum = Math.floor(Math.random() * 1000) + 1;
@@ -198,5 +200,5 @@
 		<MarkdownToolbar on:action={(e) => handleToolbarAction(e.detail)} />
 	{/if}
 
-	<div bind:this={editorElement} class="flex-1 min-h-0"></div>
+	<div bind:this={editorElement} class="min-h-0 flex-1"></div>
 </div>

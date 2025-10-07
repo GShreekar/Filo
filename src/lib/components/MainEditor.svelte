@@ -9,13 +9,11 @@
 		setInitialNoteState,
 		saveCurrentNoteIfDirty
 	} from '$lib/auto-save';
-	import { updateNote, createNote } from '$lib/firebase-service';
+	import { createNote } from '$lib/firebase-service';
 	import { showError } from '$lib/error-store';
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
-	import EmptyState from './EmptyState.svelte';
 	import { FileText, Eye, Edit, Clock, Smartphone, Monitor, Tablet, X, Plus } from 'lucide-svelte';
-	import type { Note } from '$lib/types';
 	import { onMount, tick } from 'svelte';
 
 	let content = '';
@@ -363,13 +361,15 @@
 		</div>
 
 		<!-- Editor Content -->
-		<div class="flex-1 min-h-0 overflow-hidden">
+		<div class="min-h-0 flex-1 overflow-hidden">
 			{#if viewMode === 'split' && !isMobile}
 				<div class="flex h-full min-w-0">
-					<div class="min-w-0 flex-1 min-h-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+					<div
+						class="min-h-0 min-w-0 flex-1 overflow-y-auto border-r border-gray-200 dark:border-gray-700"
+					>
 						<MarkdownEditor {content} onContentChange={handleContentChange} />
 					</div>
-					<div class="min-w-0 flex-1 min-h-0 overflow-y-auto">
+					<div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
 						<MarkdownPreview {content} />
 					</div>
 				</div>

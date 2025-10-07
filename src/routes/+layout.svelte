@@ -2,7 +2,7 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
-	import { searchQuery, showSearchResults } from '$lib/stores';
+	import { showSearchResults } from '$lib/stores';
 
 	let { children } = $props();
 

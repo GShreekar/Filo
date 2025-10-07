@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { subscribeFolders, subscribeNotes } from '$lib/firebase-service';
-	import { sidebarCollapsed, searchQuery, selectedNote, folders, notes } from '$lib/stores';
+	import { sidebarCollapsed, selectedNote, notes } from '$lib/stores';
 	import { createNote, createFolder } from '$lib/firebase-service';
 	import { shortcuts, matchesShortcut } from '$lib/keyboard-shortcuts';
 	import TopBar from '$lib/components/TopBar.svelte';
@@ -161,7 +161,7 @@
 		<!-- Main Content -->
 		<main class="flex-1 overflow-hidden">
 			<button
-				class="h-full w-full border-0 bg-transparent p-0 text-left outline-none focus:outline-0 overflow-hidden"
+				class="h-full w-full overflow-hidden border-0 bg-transparent p-0 text-left outline-none focus:outline-0"
 				bind:this={editorContainer}
 				on:click={handleEditorFocus}
 				type="button"

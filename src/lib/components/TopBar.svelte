@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search, Menu, Plus, FolderPlus, X } from 'lucide-svelte';
+	import { Search, Menu, Plus, FolderPlus, X, Download, Upload } from 'lucide-svelte';
 	import {
 		sidebarCollapsed,
 		searchQuery,
@@ -7,14 +7,17 @@
 		selectedSearchIndex,
 		showSearchResults,
 		selectedNote,
-		folders,
 		notes,
-		inputModal
+		inputModal,
+		exportModal,
+		importModal
 	} from '$lib/stores';
 	import { createNote, createFolder } from '$lib/firebase-service';
 	import { searchAll } from '$lib/search-service';
 	import SearchResults from './SearchResults.svelte';
 	import InputModal from './InputModal.svelte';
+	import ExportModal from './ExportModal.svelte';
+	import ImportModal from './ImportModal.svelte';
 
 	export let searchInput: HTMLInputElement | undefined = undefined;
 
@@ -24,6 +27,12 @@
 
 	let inputModalVisible = false;
 	$: inputModalVisible = $inputModal.visible;
+
+	let exportModalVisible = false;
+	$: exportModalVisible = $exportModal.visible;
+
+	let importModalVisible = false;
+	$: importModalVisible = $importModal.visible;
 
 	$: if ($searchQuery !== undefined) {
 		clearTimeout(searchTimeout);
@@ -72,6 +81,19 @@
 				createFolder(name);
 				inputModal.update((modal) => ({ ...modal, visible: false }));
 			}
+		});
+	}
+
+	function handleExportWorkspace() {
+		exportModal.set({
+			visible: true,
+			type: 'workspace'
+		});
+	}
+
+	function handleImport() {
+		importModal.set({
+			visible: true
 		});
 	}
 
@@ -202,6 +224,22 @@
 
 	<div class="flex flex-shrink-0 items-center gap-1 sm:gap-2">
 		<button
+			on:click={handleImport}
+			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+			title="Import Notes"
+		>
+			<Download size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
+		</button>
+
+		<button
+			on:click={handleExportWorkspace}
+			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+			title="Export Workspace"
+		>
+			<Upload size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
+		</button>
+
+		<button
 			on:click={handleNewNote}
 			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 			title="New Note (Ctrl+N)"
@@ -228,3 +266,14 @@
 	on:confirm={(e) => $inputModal.onConfirm?.(e.detail)}
 	on:cancel={() => inputModal.update((modal) => ({ ...modal, visible: false }))}
 />
+
+<!-- Export Modal -->
+<ExportModal
+	bind:visible={exportModalVisible}
+	exportType={$exportModal.type}
+	targetNote={$exportModal.targetNote}
+	targetFolder={$exportModal.targetFolder}
+/>
+
+<!-- Import Modal -->
+<ImportModal bind:visible={importModalVisible} />

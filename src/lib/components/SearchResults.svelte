@@ -26,8 +26,6 @@
 	let contextMenuType: 'folder' | 'note' = 'folder';
 	let contextMenuTarget: any = null;
 
-
-
 	let longPressTimer: NodeJS.Timeout | null = null;
 	let touchStartTime = 0;
 
@@ -264,14 +262,16 @@
 				{/if}
 				{#each groupedResults.folders as result, index}
 					{#if result.folderResult}
-						<div class="relative group">
+						<div class="group relative">
 							<button
 								class="w-full border-b border-gray-100 p-4 text-left transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
 								class:bg-blue-50={selectedIndex === index}
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.folderResult && selectFolder(result.folderResult, index)}
-								on:contextmenu={(e) => result.folderResult && showContextMenu(e, 'folder', result.folderResult!.folder)}
-								on:touchstart={(e) => result.folderResult && handleTouchStart(e, 'folder', result.folderResult!.folder)}
+								on:contextmenu={(e) =>
+									result.folderResult && showContextMenu(e, 'folder', result.folderResult!.folder)}
+								on:touchstart={(e) =>
+									result.folderResult && handleTouchStart(e, 'folder', result.folderResult!.folder)}
 								on:touchend={handleTouchEnd}
 								on:touchmove={handleTouchMove}
 							>
@@ -294,7 +294,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
+								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.folderResult && showContextMenu(e, 'folder', result.folderResult!.folder);
@@ -319,72 +319,73 @@
 				{/if}
 				{#each groupedResults.bothMatches as result, index}
 					{#if result.noteResult}
-						<div class="relative group">
+						<div class="group relative">
 							<button
 								class="w-full border-b border-gray-100 p-4 text-left transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
 								class:bg-blue-50={selectedIndex === index}
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 								on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-								on:touchstart={(e) => result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
+								on:touchstart={(e) =>
+									result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
 								on:touchend={handleTouchEnd}
 								on:touchmove={handleTouchMove}
 							>
-							<div class="flex items-start gap-3">
-								<div class="mt-1 flex-shrink-0">
-									<svelte:component
-										this={getMatchTypeIcon(result.noteResult.matchType)}
-										size={16}
-										class="text-blue-500 dark:text-blue-400"
-									/>
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="truncate font-medium text-gray-900 dark:text-gray-100">
-										{@html highlightText(
-											result.noteResult!.note.title,
-											result.noteResult.titleMatches
-										)}
+								<div class="flex items-start gap-3">
+									<div class="mt-1 flex-shrink-0">
+										<svelte:component
+											this={getMatchTypeIcon(result.noteResult.matchType)}
+											size={16}
+											class="text-blue-500 dark:text-blue-400"
+										/>
 									</div>
-									{#if result.noteResult.folder?.name}
-										<div
-											class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
-										>
-											<span>{result.noteResult.folder.name}</span>
-											<ChevronRight size={12} />
-											<span class="truncate">{result.noteResult!.note.title}</span>
-										</div>
-									{/if}
-									{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0}
-										<div class="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
+									<div class="min-w-0 flex-1">
+										<div class="truncate font-medium text-gray-900 dark:text-gray-100">
 											{@html highlightText(
-												result.noteResult.excerpt,
-												result.noteResult.contentMatches
+												result.noteResult!.note.title,
+												result.noteResult.titleMatches
 											)}
 										</div>
-									{/if}
-									<div class="mt-2 flex items-center justify-between">
-										<span class="text-xs text-gray-500 dark:text-gray-400"
-											>{getMatchInfo(result.noteResult)}</span
-										>
-										<span class="text-xs text-gray-500 dark:text-gray-400"
-											>{formatTimeAgo(result.noteResult.lastModified)}</span
-										>
+										{#if result.noteResult.folder?.name}
+											<div
+												class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
+											>
+												<span>{result.noteResult.folder.name}</span>
+												<ChevronRight size={12} />
+												<span class="truncate">{result.noteResult!.note.title}</span>
+											</div>
+										{/if}
+										{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0}
+											<div class="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
+												{@html highlightText(
+													result.noteResult.excerpt,
+													result.noteResult.contentMatches
+												)}
+											</div>
+										{/if}
+										<div class="mt-2 flex items-center justify-between">
+											<span class="text-xs text-gray-500 dark:text-gray-400"
+												>{getMatchInfo(result.noteResult)}</span
+											>
+											<span class="text-xs text-gray-500 dark:text-gray-400"
+												>{formatTimeAgo(result.noteResult.lastModified)}</span
+											>
+										</div>
 									</div>
 								</div>
-							</div>
-						</button>
-						<!-- Context menu trigger button -->
-						<button
-							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
-							on:click={(e) => {
-								e.stopPropagation();
-								showContextMenu(e, 'note', result.noteResult!.note);
-							}}
-							title="More options"
-						>
-							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-						</button>
-					</div>
+							</button>
+							<!-- Context menu trigger button -->
+							<button
+								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								on:click={(e) => {
+									e.stopPropagation();
+									showContextMenu(e, 'note', result.noteResult!.note);
+								}}
+								title="More options"
+							>
+								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+							</button>
+						</div>
 					{/if}
 				{/each}
 			{/if}
@@ -400,64 +401,65 @@
 				{/if}
 				{#each groupedResults.titleMatches as result, index}
 					{#if result.noteResult}
-						<div class="relative group">
+						<div class="group relative">
 							<button
 								class="w-full border-b border-gray-100 p-4 text-left transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
 								class:bg-blue-50={selectedIndex === index}
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 								on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-								on:touchstart={(e) => result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
+								on:touchstart={(e) =>
+									result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
 								on:touchend={handleTouchEnd}
 								on:touchmove={handleTouchMove}
 							>
-							<div class="flex items-start gap-3">
-								<div class="mt-1 flex-shrink-0">
-									<svelte:component
-										this={getMatchTypeIcon(result.noteResult.matchType)}
-										size={16}
-										class="text-blue-500 dark:text-blue-400"
-									/>
-								</div>
-								<div class="min-w-0 flex-1">
-									<div class="truncate font-medium text-gray-900 dark:text-gray-100">
-										{@html highlightText(
-											result.noteResult!.note.title,
-											result.noteResult.titleMatches
-										)}
+								<div class="flex items-start gap-3">
+									<div class="mt-1 flex-shrink-0">
+										<svelte:component
+											this={getMatchTypeIcon(result.noteResult.matchType)}
+											size={16}
+											class="text-blue-500 dark:text-blue-400"
+										/>
 									</div>
-									{#if result.noteResult.folder?.name}
-										<div
-											class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
-										>
-											<span>{result.noteResult.folder.name}</span>
-											<ChevronRight size={12} />
-											<span class="truncate">{result.noteResult!.note.title}</span>
+									<div class="min-w-0 flex-1">
+										<div class="truncate font-medium text-gray-900 dark:text-gray-100">
+											{@html highlightText(
+												result.noteResult!.note.title,
+												result.noteResult.titleMatches
+											)}
 										</div>
-									{/if}
-									<div class="mt-2 flex items-center justify-between">
-										<span class="text-xs text-gray-500 dark:text-gray-400"
-											>{getMatchInfo(result.noteResult)}</span
-										>
-										<span class="text-xs text-gray-500 dark:text-gray-400"
-											>{formatTimeAgo(result.noteResult.lastModified)}</span
-										>
+										{#if result.noteResult.folder?.name}
+											<div
+												class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
+											>
+												<span>{result.noteResult.folder.name}</span>
+												<ChevronRight size={12} />
+												<span class="truncate">{result.noteResult!.note.title}</span>
+											</div>
+										{/if}
+										<div class="mt-2 flex items-center justify-between">
+											<span class="text-xs text-gray-500 dark:text-gray-400"
+												>{getMatchInfo(result.noteResult)}</span
+											>
+											<span class="text-xs text-gray-500 dark:text-gray-400"
+												>{formatTimeAgo(result.noteResult.lastModified)}</span
+											>
+										</div>
 									</div>
 								</div>
-							</div>
-						</button>
-						<!-- Context menu trigger button -->
-						<button
-							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
-							on:click={(e) => {
-								e.stopPropagation();
-								showContextMenu(e, 'note', result.noteResult!.note);
-							}}
-							title="More options"
-						>
-							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-						</button>
-					</div>
+							</button>
+							<!-- Context menu trigger button -->
+							<button
+								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								on:click={(e) => {
+									e.stopPropagation();
+									showContextMenu(e, 'note', result.noteResult!.note);
+								}}
+								title="More options"
+							>
+								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+							</button>
+						</div>
 					{/if}
 				{/each}
 			{/if}
@@ -473,24 +475,92 @@
 				{/if}
 				{#each groupedResults.contentMatches as result, index}
 					{#if result.noteResult}
-						<div class="relative group">
+						<div class="group relative">
 							<button
 								class="w-full border-b border-gray-100 p-4 text-left transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
 								class:bg-blue-50={selectedIndex === index}
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 								on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-								on:touchstart={(e) => result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
+								on:touchstart={(e) =>
+									result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
 								on:touchend={handleTouchEnd}
 								on:touchmove={handleTouchMove}
 							>
+								<div class="flex items-start gap-3">
+									<div class="mt-1 flex-shrink-0">
+										<svelte:component
+											this={getMatchTypeIcon(result.noteResult.matchType)}
+											size={16}
+											class="text-blue-500 dark:text-blue-400"
+										/>
+									</div>
+									<div class="min-w-0 flex-1">
+										<div class="truncate font-medium text-gray-900 dark:text-gray-100">
+											{result.noteResult!.note.title}
+										</div>
+										{#if result.noteResult.folder?.name}
+											<div
+												class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
+											>
+												<span>{result.noteResult.folder.name}</span>
+												<ChevronRight size={12} />
+												<span class="truncate">{result.noteResult!.note.title}</span>
+											</div>
+										{/if}
+										{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0}
+											<div class="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
+												{@html highlightText(
+													result.noteResult.excerpt,
+													result.noteResult.contentMatches
+												)}
+											</div>
+										{/if}
+										<div class="mt-2 flex items-center justify-between">
+											<span class="text-xs text-gray-500 dark:text-gray-400"
+												>{getMatchInfo(result.noteResult)}</span
+											>
+											<span class="text-xs text-gray-500 dark:text-gray-400"
+												>{formatTimeAgo(result.noteResult.lastModified)}</span
+											>
+										</div>
+									</div>
+								</div>
+							</button>
+							<!-- Context menu trigger button -->
+							<button
+								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								on:click={(e) => {
+									e.stopPropagation();
+									showContextMenu(e, 'note', result.noteResult!.note);
+								}}
+								title="More options"
+							>
+								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+							</button>
+						</div>
+					{/if}
+				{/each}
+			{/if}
+
+			<!-- Recent Notes -->
+			{#each groupedResults.recentNotes as result, index}
+				{#if result.noteResult}
+					<div class="group relative">
+						<button
+							class="w-full border-b border-gray-100 p-4 text-left transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+							class:bg-blue-50={selectedIndex === index}
+							class:bg-blue-900={selectedIndex === index && true}
+							on:click={() => result.noteResult && selectResult(result.noteResult, index)}
+							on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
+							on:touchstart={(e) =>
+								result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
+							on:touchend={handleTouchEnd}
+							on:touchmove={handleTouchMove}
+						>
 							<div class="flex items-start gap-3">
 								<div class="mt-1 flex-shrink-0">
-									<svelte:component
-										this={getMatchTypeIcon(result.noteResult.matchType)}
-										size={16}
-										class="text-blue-500 dark:text-blue-400"
-									/>
+									<Clock size={16} class="text-gray-400" />
 								</div>
 								<div class="min-w-0 flex-1">
 									<div class="truncate font-medium text-gray-900 dark:text-gray-100">
@@ -505,7 +575,8 @@
 											<span class="truncate">{result.noteResult!.note.title}</span>
 										</div>
 									{/if}
-									{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0}
+									<!-- Only show excerpt for recent notes if there's a search query and content matches -->
+									{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0 && query.trim()}
 										<div class="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
 											{@html highlightText(
 												result.noteResult.excerpt,
@@ -514,9 +585,7 @@
 										</div>
 									{/if}
 									<div class="mt-2 flex items-center justify-between">
-										<span class="text-xs text-gray-500 dark:text-gray-400"
-											>{getMatchInfo(result.noteResult)}</span
-										>
+										<span class="text-xs text-gray-500 dark:text-gray-400">Recent note</span>
 										<span class="text-xs text-gray-500 dark:text-gray-400"
 											>{formatTimeAgo(result.noteResult.lastModified)}</span
 										>
@@ -526,7 +595,7 @@
 						</button>
 						<!-- Context menu trigger button -->
 						<button
-							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
+							class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
 							on:click={(e) => {
 								e.stopPropagation();
 								showContextMenu(e, 'note', result.noteResult!.note);
@@ -536,71 +605,6 @@
 							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
 						</button>
 					</div>
-					{/if}
-				{/each}
-			{/if}
-
-			<!-- Recent Notes -->
-			{#each groupedResults.recentNotes as result, index}
-				{#if result.noteResult}
-					<div class="relative group">
-						<button
-							class="w-full border-b border-gray-100 p-4 text-left transition-colors last:border-b-0 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-							class:bg-blue-50={selectedIndex === index}
-							class:bg-blue-900={selectedIndex === index && true}
-							on:click={() => result.noteResult && selectResult(result.noteResult, index)}
-							on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-							on:touchstart={(e) => result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
-							on:touchend={handleTouchEnd}
-							on:touchmove={handleTouchMove}
-						>
-						<div class="flex items-start gap-3">
-							<div class="mt-1 flex-shrink-0">
-								<Clock size={16} class="text-gray-400" />
-							</div>
-							<div class="min-w-0 flex-1">
-								<div class="truncate font-medium text-gray-900 dark:text-gray-100">
-									{result.noteResult!.note.title}
-								</div>
-								{#if result.noteResult.folder?.name}
-									<div
-										class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"
-									>
-										<span>{result.noteResult.folder.name}</span>
-										<ChevronRight size={12} />
-										<span class="truncate">{result.noteResult!.note.title}</span>
-									</div>
-								{/if}
-								<!-- Only show excerpt for recent notes if there's a search query and content matches -->
-								{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0 && query.trim()}
-									<div class="mt-2 line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
-										{@html highlightText(
-											result.noteResult.excerpt,
-											result.noteResult.contentMatches
-										)}
-									</div>
-								{/if}
-								<div class="mt-2 flex items-center justify-between">
-									<span class="text-xs text-gray-500 dark:text-gray-400">Recent note</span>
-									<span class="text-xs text-gray-500 dark:text-gray-400"
-										>{formatTimeAgo(result.noteResult.lastModified)}</span
-									>
-								</div>
-							</div>
-						</div>
-					</button>
-					<!-- Context menu trigger button -->
-					<button
-						class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
-						on:click={(e) => {
-							e.stopPropagation();
-							showContextMenu(e, 'note', result.noteResult!.note);
-						}}
-						title="More options"
-					>
-						<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-					</button>
-				</div>
 				{/if}
 			{/each}
 		</div>
@@ -618,7 +622,7 @@
 
 <!-- Context Menu - positioned at document level with high z-index -->
 {#if contextMenuVisible}
-	<div class="context-menu fixed inset-0 z-[9999] pointer-events-none">
+	<div class="context-menu pointer-events-none fixed inset-0 z-[9999]">
 		<ContextMenu
 			x={contextMenuX}
 			y={contextMenuY}

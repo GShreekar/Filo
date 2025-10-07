@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { Folder, Note } from './types';
 import type { CombinedSearchResult } from './search-service';
 
@@ -14,9 +14,6 @@ export const notes = writable<Note[]>([]);
 export const searchResults = writable<CombinedSearchResult[]>([]);
 export const selectedSearchIndex = writable(-1);
 export const showSearchResults = writable(false);
-
-export const isLoading = writable(false);
-export const isSaving = writable(false);
 
 export const contextMenu = writable<{
 	visible: boolean;
@@ -53,4 +50,20 @@ export const inputModal = writable<{
 	title: '',
 	placeholder: '',
 	value: ''
+});
+
+export const exportModal = writable<{
+	visible: boolean;
+	type: 'note' | 'folder' | 'workspace';
+	targetNote?: Note;
+	targetFolder?: Folder;
+}>({
+	visible: false,
+	type: 'note'
+});
+
+export const importModal = writable<{
+	visible: boolean;
+}>({
+	visible: false
 });

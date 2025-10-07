@@ -8,9 +8,9 @@
 		contextMenu,
 		confirmModal,
 		inputModal,
+		exportModal,
 		searchQuery,
 		searchResults,
-		showSearchResults,
 		selectedSearchIndex
 	} from '$lib/stores';
 	import {
@@ -89,7 +89,7 @@
 		selectedNote.set(note);
 		const folder = $folders.find((f) => f.id === note.folderId);
 		selectedFolder.set(folder?.id || null);
-		
+
 		if (typeof window !== 'undefined' && window.innerWidth < 768) {
 			sidebarCollapsed.set(true);
 		}
@@ -205,6 +205,21 @@
 					showRenameModal('renameNote', target.id, (target as Note).title);
 				}
 				break;
+			case 'export':
+				if (type === 'folder') {
+					exportModal.set({
+						visible: true,
+						type: 'folder',
+						targetFolder: target as FolderType
+					});
+				} else {
+					exportModal.set({
+						visible: true,
+						type: 'note',
+						targetNote: target as Note
+					});
+				}
+				break;
 			case 'delete':
 				if (type === 'folder') {
 					showDeleteConfirm('deleteFolder', target.id, (target as FolderType).name);
@@ -306,14 +321,6 @@
 		}
 	}
 
-	function getNotesInFolder(folderId: string): Note[] {
-		return $notes.filter((note) => note.folderId === folderId);
-	}
-
-	function getStandaloneNotes(): Note[] {
-		return $notes.filter((note) => note.folderId === null);
-	}
-
 	$: standaloneNotes = $notes.filter((note) => note.folderId === null);
 
 	$: folderNotes = $folders.reduce(
@@ -323,6 +330,10 @@
 		},
 		{} as Record<string, Note[]>
 	);
+
+	function getNotesInFolder(folderId: string): Note[] {
+		return $notes.filter((note) => note.folderId === folderId);
+	}
 
 	function handleSearchKeydown(event: KeyboardEvent) {
 		if (!isSearching || $searchResults.length === 0) return;
@@ -484,9 +495,9 @@
 
 	async function handleFolderDrop(event: DragEvent, folderId: string) {
 		event.preventDefault();
-		
+
 		if (draggedNoteId) {
-			const draggedNote = $notes.find(n => n.id === draggedNoteId);
+			const draggedNote = $notes.find((n) => n.id === draggedNoteId);
 			if (draggedNote && draggedNote.folderId !== folderId) {
 				try {
 					await moveNote(draggedNoteId, folderId);
@@ -495,7 +506,7 @@
 				}
 			}
 		}
-		
+
 		draggedNoteId = null;
 		dragOverFolderId = null;
 	}
@@ -511,7 +522,7 @@
 	function handleFolderDragLeave(event: DragEvent) {
 		const target = event.currentTarget as HTMLElement;
 		const relatedTarget = event.relatedTarget as HTMLElement;
-		
+
 		if (!target.contains(relatedTarget)) {
 			dragOverFolderId = null;
 		}
@@ -519,9 +530,9 @@
 
 	async function handleStandaloneDrop(event: DragEvent) {
 		event.preventDefault();
-		
+
 		if (draggedNoteId) {
-			const draggedNote = $notes.find(n => n.id === draggedNoteId);
+			const draggedNote = $notes.find((n) => n.id === draggedNoteId);
 			if (draggedNote && draggedNote.folderId !== null) {
 				try {
 					await moveNote(draggedNoteId, null);
@@ -530,7 +541,7 @@
 				}
 			}
 		}
-		
+
 		draggedNoteId = null;
 		dragOverStandalone = false;
 	}
@@ -546,7 +557,7 @@
 	function handleStandaloneDragLeave(event: DragEvent) {
 		const target = event.currentTarget as HTMLElement;
 		const relatedTarget = event.relatedTarget as HTMLElement;
-		
+
 		if (!target.contains(relatedTarget)) {
 			dragOverStandalone = false;
 		}
@@ -609,11 +620,13 @@
 				</h3>
 				{#each $searchResults as result, index}
 					{#if result.type === 'note' && result.noteResult}
-						<div class="relative group">
+						<div class="group relative">
 							<button
 								on:click={() => result.noteResult && selectNote(result.noteResult.note)}
-								on:contextmenu={(e) => result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note)}
-								on:touchstart={(e) => result.noteResult && handleTouchStart(e, 'note', result.noteResult.note)}
+								on:contextmenu={(e) =>
+									result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note)}
+								on:touchstart={(e) =>
+									result.noteResult && handleTouchStart(e, 'note', result.noteResult.note)}
 								on:touchend={handleTouchEnd}
 								on:touchmove={handleTouchMove}
 								class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -622,90 +635,97 @@
 								class:ring-2={$selectedSearchIndex === index}
 								class:ring-blue-500={$selectedSearchIndex === index}
 							>
-							<div class="mb-1 flex items-center gap-2">
-								<FileText class="h-4 w-4 text-gray-400" />
-								<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-									{@html highlightText(
-										result.noteResult.note.title,
-										result.noteResult.titleMatches
-									)}
-								</span>
-								{#if result.noteResult.matchType === 'recent'}
-									<span
-										class="rounded-full bg-green-100 px-1.5 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
-										>Recent</span
-									>
+								<div class="mb-1 flex items-center gap-2">
+									<FileText class="h-4 w-4 text-gray-400" />
+									<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+										{@html highlightText(
+											result.noteResult.note.title,
+											result.noteResult.titleMatches
+										)}
+									</span>
+									{#if result.noteResult.matchType === 'recent'}
+										<span
+											class="rounded-full bg-green-100 px-1.5 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
+											>Recent</span
+										>
+									{/if}
+								</div>
+								{#if result.noteResult.folder}
+									<div class="truncate text-xs text-gray-500 dark:text-gray-400">
+										in {result.noteResult.folder.name}
+									</div>
 								{/if}
-							</div>
-							{#if result.noteResult.folder}
-								<div class="truncate text-xs text-gray-500 dark:text-gray-400">
-									in {result.noteResult.folder.name}
-								</div>
-							{/if}
-							{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0}
-								<div class="mt-1 line-clamp-2 text-xs text-gray-600 dark:text-gray-300">
-									{@html highlightText(result.noteResult.excerpt, result.noteResult.contentMatches)}
-								</div>
-							{/if}
-							{#if result.noteResult.lastModified}
-								<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
-									{formatTimeAgo(result.noteResult.lastModified)}
-								</div>
-							{/if}
-						</button>
-						<!-- Context menu trigger button -->
-						<button
-							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
-							on:click={(e) => {
-								e.stopPropagation();
-								result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note);
-							}}
-							title="More options"
-						>
-							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-						</button>
-					</div>
+								{#if result.noteResult.excerpt && result.noteResult.contentMatches.length > 0}
+									<div class="mt-1 line-clamp-2 text-xs text-gray-600 dark:text-gray-300">
+										{@html highlightText(
+											result.noteResult.excerpt,
+											result.noteResult.contentMatches
+										)}
+									</div>
+								{/if}
+								{#if result.noteResult.lastModified}
+									<div class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+										{formatTimeAgo(result.noteResult.lastModified)}
+									</div>
+								{/if}
+							</button>
+							<!-- Context menu trigger button -->
+							<button
+								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								on:click={(e) => {
+									e.stopPropagation();
+									result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note);
+								}}
+								title="More options"
+							>
+								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+							</button>
+						</div>
 					{:else if result.type === 'folder' && result.folderResult}
-						<div class="relative group">
+						<div class="group relative">
 							<button
 								on:click={() => result.folderResult && toggleFolder(result.folderResult.folder.id)}
-								on:contextmenu={(e) => result.folderResult && showSearchContextMenu(e, 'folder', result.folderResult.folder)}
-								on:touchstart={(e) => result.folderResult && handleTouchStart(e, 'folder', result.folderResult.folder)}
+								on:contextmenu={(e) =>
+									result.folderResult &&
+									showSearchContextMenu(e, 'folder', result.folderResult.folder)}
+								on:touchstart={(e) =>
+									result.folderResult && handleTouchStart(e, 'folder', result.folderResult.folder)}
 								on:touchend={handleTouchEnd}
 								on:touchmove={handleTouchMove}
 								class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 								class:ring-2={$selectedSearchIndex === index}
 								class:ring-blue-500={$selectedSearchIndex === index}
 							>
-							<div class="mb-1 flex items-center gap-2">
-								<Folder class="h-4 w-4 text-blue-600" />
-								<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-									{@html highlightText(
-										result.folderResult.folder.name,
-										result.folderResult.titleMatches
-									)}
-								</span>
-								<span
-									class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-									>Folder</span
-								>
-							</div>
-							<div class="truncate text-xs text-gray-500 dark:text-gray-400">
-								{getNotesInFolder(result.folderResult.folder.id).length} notes
-							</div>
-						</button>
-						<!-- Context menu trigger button -->
-						<button
-							class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-opacity"
-							on:click={(e) => {
-								e.stopPropagation();
-								result.folderResult && showSearchContextMenu(e, 'folder', result.folderResult.folder);
-							}}
-							title="More options"
-						>
-							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-						</button>
-					</div>
+								<div class="mb-1 flex items-center gap-2">
+									<Folder class="h-4 w-4 text-blue-600" />
+									<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+										{@html highlightText(
+											result.folderResult.folder.name,
+											result.folderResult.titleMatches
+										)}
+									</span>
+									<span
+										class="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+										>Folder</span
+									>
+								</div>
+								<div class="truncate text-xs text-gray-500 dark:text-gray-400">
+									{getNotesInFolder(result.folderResult.folder.id).length} notes
+								</div>
+							</button>
+							<!-- Context menu trigger button -->
+							<button
+								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								on:click={(e) => {
+									e.stopPropagation();
+									result.folderResult &&
+										showSearchContextMenu(e, 'folder', result.folderResult.folder);
+								}}
+								title="More options"
+							>
+								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+							</button>
+						</div>
 					{/if}
 				{/each}
 
@@ -719,7 +739,7 @@
 			<!-- Folder Tree -->
 			<div class="p-2">
 				<!-- Standalone Notes -->
-				<div 
+				<div
 					class="mb-4"
 					class:bg-blue-50={dragOverStandalone}
 					class:dark:bg-blue-900={dragOverStandalone}
@@ -780,7 +800,9 @@
 							</div>
 						{/each}
 					{:else}
-						<div class="p-2 text-xs text-gray-500 italic dark:text-gray-400 min-h-[2rem] flex items-center">
+						<div
+							class="flex min-h-[2rem] items-center p-2 text-xs text-gray-500 italic dark:text-gray-400"
+						>
 							No standalone notes yet
 						</div>
 					{/if}
@@ -931,7 +953,7 @@
 
 <!-- Search Context Menu - positioned at document level with high z-index -->
 {#if searchContextMenuVisible}
-	<div class="search-context-menu fixed inset-0 z-[9999] pointer-events-none">
+	<div class="search-context-menu pointer-events-none fixed inset-0 z-[9999]">
 		<ContextMenu
 			x={searchContextMenuX}
 			y={searchContextMenuY}

@@ -32,7 +32,20 @@
 	let containerRef: HTMLDivElement;
 
 	hljs.configure({
-		languages: ['javascript', 'typescript', 'python', 'java', 'css', 'html', 'json', 'markdown', 'bash', 'sql', 'xml', 'yaml']
+		languages: [
+			'javascript',
+			'typescript',
+			'python',
+			'java',
+			'css',
+			'html',
+			'json',
+			'markdown',
+			'bash',
+			'sql',
+			'xml',
+			'yaml'
+		]
 	});
 
 	let md: MarkdownIt;
@@ -121,36 +134,34 @@
 
 	$: renderedContent = mounted && md ? md.render(content) : '';
 
-
-
 	function handleFootnoteClick(event: Event) {
 		const target = event.target as HTMLElement;
 		const link = target.closest('a');
-		
+
 		if (!link || !containerRef) return;
-		
+
 		const href = link.getAttribute('href');
 		if (!href || !href.startsWith('#')) return;
-		
+
 		event.preventDefault();
-		
+
 		const targetId = href.slice(1);
 		const targetElement = containerRef.querySelector(`#${targetId}`);
-		
+
 		if (targetElement) {
 			const containerRect = containerRef.getBoundingClientRect();
 			const targetRect = targetElement.getBoundingClientRect();
 			const relativeTop = targetRect.top - containerRect.top + containerRef.scrollTop;
-			
+
 			const scrollTop = relativeTop - containerRef.clientHeight / 2;
-			
+
 			containerRef.scrollTo({
 				top: Math.max(0, scrollTop),
 				behavior: 'smooth'
 			});
-			
+
 			targetElement.classList.add('footnote-highlight');
-			
+
 			setTimeout(() => {
 				targetElement.classList.remove('footnote-highlight');
 			}, 1000);
@@ -162,17 +173,15 @@
 		mounted = true;
 	});
 
-
-
 	afterUpdate(() => {
 		if (containerRef && mounted) {
 			const footnoteLinks = containerRef.querySelectorAll('a[href^="#fn"], a[href^="#fnref"]');
-			footnoteLinks.forEach(link => {
+			footnoteLinks.forEach((link) => {
 				link.addEventListener('click', handleFootnoteClick);
 			});
-			
+
 			return () => {
-				footnoteLinks.forEach(link => {
+				footnoteLinks.forEach((link) => {
 					link.removeEventListener('click', handleFootnoteClick);
 				});
 			};
@@ -182,11 +191,11 @@
 
 <div
 	bind:this={containerRef}
-	class="h-full overflow-y-auto overflow-x-hidden pb-8"
+	class="h-full overflow-x-hidden overflow-y-auto pb-8"
 	aria-label="Markdown preview content"
 >
 	<div
-		class="prose prose-gray dark:prose-invert max-w-none overflow-x-hidden p-4 break-words box-border"
+		class="prose prose-gray dark:prose-invert box-border max-w-none overflow-x-hidden p-4 break-words"
 	>
 		{@html renderedContent}
 	</div>
@@ -346,7 +355,17 @@
 		-webkit-user-select: text;
 	}
 
-	:global(.prose p, .prose li, .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6, .prose blockquote) {
+	:global(
+		.prose p,
+		.prose li,
+		.prose h1,
+		.prose h2,
+		.prose h3,
+		.prose h4,
+		.prose h5,
+		.prose h6,
+		.prose blockquote
+	) {
 		cursor: text;
 	}
 
@@ -360,10 +379,8 @@
 	}
 
 	:global(.prose p:empty)::before {
-		content: "\00a0";
+		content: '\00a0';
 		display: block;
 		line-height: 1.5em;
 	}
-
-
 </style>

@@ -17,6 +17,13 @@ A clean, fast, and intelligent note-taking application built with SvelteKit and 
 - **Smart Results**: Recent notes appear first, with highlighted search terms
 - **Search Operators**: Use `folder:name` to search specific folders or `title:text` for titles only
 
+### **Export and Share**
+
+- **Markdown Export**: Export individual notes as `.md` files
+- **Folder Export**: Download all notes in a folder as a ZIP archive with folder structure preserved
+- **Workspace Export**: Export your entire workspace as a ZIP with complete folder hierarchy
+- **Universal Format**: Markdown files work in any text editor or markdown processor
+
 ### **Comfortable Writing**
 
 - **Multiple Views**: Switch between editor-only, preview-only, or split view
@@ -73,23 +80,35 @@ A clean, fast, and intelligent note-taking application built with SvelteKit and 
 
 ## Advanced Markdown Features
 
-Filo supports extended markdown with powerful plugins:
+Filo supports extended markdown with powerful plugins and focuses on the universal Markdown format for exports:
+
+### Export Capabilities
+
+- **Individual Notes**: Export any note as a `.md` file with full formatting preserved
+- **Folder Export**: Download entire folders as ZIP archives containing all notes as `.md` files
+- **Workspace Export**: Export your complete workspace with folder hierarchy intact
+- **Universal Compatibility**: Markdown files work in any text editor, documentation system, or markdown processor
+- **No Lock-in**: Your data remains accessible in the most widely-supported text format
 
 ### Math & Science
+
 - **KaTeX Math**: Write beautiful equations with `$inline$` or `$$block$$` syntax
 - **Subscript/Superscript**: Use `H~2~O` for H₂O and `x^2^` for x²
 
 ### Enhanced Formatting
+
 - **Highlight**: Mark important text with `==highlighted==`
 - **Abbreviations**: Define `*[HTML]: HyperText Markup Language` for tooltips
 - **Footnotes**: Add references with `[^1]` and `[^1]: footnote content`
 
 ### Lists & Tables
+
 - **Task Lists**: Create checkboxes with `- [x] completed` and `- [ ] todo`
 - **Definition Lists**: Structured definitions with term/description pairs
 - **Advanced Tables**: Multi-line cells, alignment, and complex layouts
 
 ### Code & Syntax
+
 - **Syntax Highlighting**: 180+ languages supported via highlight.js
 - **Code Attributes**: Add classes and attributes to code blocks
 
@@ -131,6 +150,7 @@ Filo supports extended markdown with powerful plugins:
 - **Smart auto-save**: Intelligent saving that only triggers on actual changes
 - **Advanced markdown**: Full markdown support with KaTeX math, syntax highlighting, and tables
 - **Full-text search**: Lightning-fast search across all notes and folders
+- **Markdown export**: Export notes, folders, or entire workspace as universal `.md` files
 - **Responsive design**: Perfect experience on desktop, tablet, and mobile
 - **Offline-first**: Continue working without internet, sync when reconnected
 
@@ -195,7 +215,7 @@ Your app will be available at: `https://your-project-id.web.app`
 - **User Accounts**: Sign in to access your notes from anywhere
 - **Sharing**: Share notes and folders with others
 - **Rich Text Editor**: Bold, italic, and formatting buttons
-- **Export Options**: Download notes as PDF, Word, or plain text
+- **Export Options**: Download notes and folders as Markdown files
 - **Mobile Apps**: Native iOS and Android apps
 
 ### Advanced Features
