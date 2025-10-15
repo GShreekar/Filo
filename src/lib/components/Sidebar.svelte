@@ -24,7 +24,7 @@
 	} from '$lib/firebase-service';
 	import { searchAll, highlightText, formatTimeAgo } from '$lib/search-service';
 	import { showError } from '$lib/error-store';
-	import { tick } from 'svelte';
+	import { tick, onMount } from 'svelte';
 	import { Folder, FolderOpen, FileText, Plus, Search, MoreVertical } from 'lucide-svelte';
 	import ContextMenu from './ContextMenu.svelte';
 	import ConfirmModal from './ConfirmModal.svelte';
@@ -58,6 +58,7 @@
 
 	let longPressTimer: NodeJS.Timeout | null = null;
 	let touchStartTime = 0;
+	let isMobile = false;
 
 	let contextMenuVisible = false;
 
@@ -75,6 +76,15 @@
 
 	$: confirmModalVisible = $confirmModal.visible;
 	$: inputModalVisible = $inputModal.visible;
+
+	onMount(() => {
+		const checkMobile = () => {
+			isMobile = window.innerWidth < 768;
+		};
+		checkMobile();
+		window.addEventListener('resize', checkMobile);
+		return () => window.removeEventListener('resize', checkMobile);
+	});
 
 	function toggleFolder(folderId: string) {
 		if (expandedFolders.has(folderId)) {
@@ -364,26 +374,32 @@
 		}
 	}
 
-	function handleTouchStart(event: TouchEvent, type: 'folder' | 'note', target: any) {
+	function handleTouchStart(event: TouchEvent, noteId: string) {
 		touchStartTime = Date.now();
 		longPressTimer = setTimeout(() => {
-			const touch = event.touches[0];
-			if (touch) {
-				const syntheticEvent = {
-					preventDefault: () => event.preventDefault(),
-					stopPropagation: () => event.stopPropagation(),
-					clientX: touch.clientX,
-					clientY: touch.clientY
-				} as MouseEvent;
-				showSearchContextMenu(syntheticEvent, type, target);
+			if (event.touches[0]) {
+				draggedNoteId = noteId;
+				const target = event.currentTarget as HTMLElement;
+				if (target) {
+					target.style.opacity = '0.7';
+					target.style.transform = 'scale(0.95)';
+				}
+				if (navigator.vibrate) {
+					navigator.vibrate(50);
+				}
 			}
 		}, 500);
 	}
 
-	function handleTouchEnd() {
+	function handleTouchEnd(event: TouchEvent) {
 		if (longPressTimer) {
 			clearTimeout(longPressTimer);
 			longPressTimer = null;
+		}
+		const target = event.currentTarget as HTMLElement;
+		if (target) {
+			target.style.opacity = '';
+			target.style.transform = '';
 		}
 	}
 
@@ -625,10 +641,6 @@
 								on:click={() => result.noteResult && selectNote(result.noteResult.note)}
 								on:contextmenu={(e) =>
 									result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note)}
-								on:touchstart={(e) =>
-									result.noteResult && handleTouchStart(e, 'note', result.noteResult.note)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
 								class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 								class:bg-blue-50={$selectedNote?.id === result.noteResult.note.id}
 								class:dark:bg-blue-900={$selectedNote?.id === result.noteResult.note.id}
@@ -671,7 +683,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note);
@@ -688,10 +700,6 @@
 								on:contextmenu={(e) =>
 									result.folderResult &&
 									showSearchContextMenu(e, 'folder', result.folderResult.folder)}
-								on:touchstart={(e) =>
-									result.folderResult && handleTouchStart(e, 'folder', result.folderResult.folder)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
 								class="group w-full rounded-lg p-3 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 								class:ring-2={$selectedSearchIndex === index}
 								class:ring-blue-500={$selectedSearchIndex === index}
@@ -715,7 +723,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.folderResult &&
@@ -753,7 +761,7 @@
 					{#if standaloneNotes.length > 0}
 						{#each standaloneNotes as note}
 							<div
-								class="group flex items-center justify-between"
+								class="group relative flex items-center justify-between"
 								class:opacity-50={draggedNoteId === note.id}
 								role="menuitem"
 								tabindex="-1"
@@ -761,6 +769,9 @@
 								on:dragstart={(e) => handleDragStart(e, note.id)}
 								on:dragend={handleDragEnd}
 								on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
+								on:touchstart={(e) => handleTouchStart(e, note.id)}
+								on:touchend={handleTouchEnd}
+								on:touchmove={handleTouchMove}
 							>
 								<button
 									on:click={() => selectNote(note)}
@@ -797,6 +808,17 @@
 										</span>
 									{/if}
 								</button>
+								<!-- Context menu trigger button -->
+								<button
+									class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+									on:click={(e) => {
+										e.stopPropagation();
+										showContextMenu(e, 'note', note.id, note.title);
+									}}
+									title="More options"
+								>
+									<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+								</button>
 							</div>
 						{/each}
 					{:else}
@@ -819,7 +841,7 @@
 					<div class="mb-2">
 						<!-- Folder Header -->
 						<div
-							class="group flex items-center justify-between"
+							class="group relative flex items-center justify-between"
 							class:bg-blue-50={dragOverFolderId === folder.id}
 							class:dark:bg-blue-900={dragOverFolderId === folder.id}
 							role="menuitem"
@@ -843,6 +865,17 @@
 									{folder.name}
 								</span>
 							</button>
+							<!-- Context menu trigger button -->
+							<button
+								class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+								on:click={(e) => {
+									e.stopPropagation();
+									showContextMenu(e, 'folder', folder.id, folder.name);
+								}}
+								title="More options"
+							>
+								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+							</button>
 						</div>
 
 						<!-- Notes in Folder -->
@@ -850,7 +883,7 @@
 							<div class="mt-1 ml-6">
 								{#each folderNotes[folder.id] || [] as note (note.id)}
 									<div
-										class="group flex items-center justify-between"
+										class="group relative flex items-center justify-between"
 										class:opacity-50={draggedNoteId === note.id}
 										role="menuitem"
 										tabindex="-1"
@@ -858,6 +891,9 @@
 										on:dragstart={(e) => handleDragStart(e, note.id)}
 										on:dragend={handleDragEnd}
 										on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
+										on:touchstart={(e) => handleTouchStart(e, note.id)}
+										on:touchend={handleTouchEnd}
+										on:touchmove={handleTouchMove}
 									>
 										<button
 											on:click={() => selectNote(note)}
@@ -893,6 +929,17 @@
 													{note.title}
 												</span>
 											{/if}
+										</button>
+										<!-- Context menu trigger button -->
+										<button
+											class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+											on:click={(e) => {
+												e.stopPropagation();
+												showContextMenu(e, 'note', note.id, note.title);
+											}}
+											title="More options"
+										>
+											<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
 										</button>
 									</div>
 								{/each}

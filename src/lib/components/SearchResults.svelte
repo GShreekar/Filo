@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, onMount } from 'svelte';
 	import { Clock, FileText, Hash, ChevronRight, Folder, MoreVertical } from 'lucide-svelte';
 	import type {
 		CombinedSearchResult,
@@ -28,6 +28,7 @@
 
 	let longPressTimer: NodeJS.Timeout | null = null;
 	let touchStartTime = 0;
+	let isMobile = false;
 
 	$: groupedResults = groupResultsByType(results, query);
 
