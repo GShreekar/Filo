@@ -32,6 +32,15 @@
 
 	$: groupedResults = groupResultsByType(results, query);
 
+	onMount(() => {
+		const checkMobile = () => {
+			isMobile = window.innerWidth < 768;
+		};
+		checkMobile();
+		window.addEventListener('resize', checkMobile);
+		return () => window.removeEventListener('resize', checkMobile);
+	});
+
 	function groupResultsByType(results: CombinedSearchResult[], query: string) {
 		const folders = results.filter((r) => r.type === 'folder');
 		const titleMatches = results.filter(
@@ -111,36 +120,6 @@
 			return `${contentCount} content match${contentCount > 1 ? 'es' : ''}`;
 		}
 		return 'Recent note';
-	}
-
-	function handleTouchStart(event: TouchEvent, type: 'folder' | 'note', target: any) {
-		touchStartTime = Date.now();
-		longPressTimer = setTimeout(() => {
-			const touch = event.touches[0];
-			if (touch) {
-				const syntheticEvent = {
-					preventDefault: () => event.preventDefault(),
-					stopPropagation: () => event.stopPropagation(),
-					clientX: touch.clientX,
-					clientY: touch.clientY
-				} as MouseEvent;
-				showContextMenu(syntheticEvent, type, target);
-			}
-		}, 500);
-	}
-
-	function handleTouchEnd() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer);
-			longPressTimer = null;
-		}
-	}
-
-	function handleTouchMove() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer);
-			longPressTimer = null;
-		}
 	}
 
 	function showContextMenu(event: MouseEvent, type: 'folder' | 'note', target: any) {
@@ -271,10 +250,6 @@
 								on:click={() => result.folderResult && selectFolder(result.folderResult, index)}
 								on:contextmenu={(e) =>
 									result.folderResult && showContextMenu(e, 'folder', result.folderResult!.folder)}
-								on:touchstart={(e) =>
-									result.folderResult && handleTouchStart(e, 'folder', result.folderResult!.folder)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
 							>
 								<div class="flex items-start gap-3">
 									<div class="mt-1 flex-shrink-0">
@@ -295,7 +270,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.folderResult && showContextMenu(e, 'folder', result.folderResult!.folder);
@@ -327,10 +302,6 @@
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 								on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-								on:touchstart={(e) =>
-									result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
 							>
 								<div class="flex items-start gap-3">
 									<div class="mt-1 flex-shrink-0">
@@ -377,7 +348,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									showContextMenu(e, 'note', result.noteResult!.note);
@@ -409,10 +380,6 @@
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 								on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-								on:touchstart={(e) =>
-									result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
 							>
 								<div class="flex items-start gap-3">
 									<div class="mt-1 flex-shrink-0">
@@ -451,7 +418,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									showContextMenu(e, 'note', result.noteResult!.note);
@@ -483,10 +450,6 @@
 								class:bg-blue-900={selectedIndex === index && true}
 								on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 								on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-								on:touchstart={(e) =>
-									result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
 							>
 								<div class="flex items-start gap-3">
 									<div class="mt-1 flex-shrink-0">
@@ -530,7 +493,7 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									showContextMenu(e, 'note', result.noteResult!.note);
@@ -554,10 +517,6 @@
 							class:bg-blue-900={selectedIndex === index && true}
 							on:click={() => result.noteResult && selectResult(result.noteResult, index)}
 							on:contextmenu={(e) => showContextMenu(e, 'note', result.noteResult!.note)}
-							on:touchstart={(e) =>
-								result.noteResult && handleTouchStart(e, 'note', result.noteResult!.note)}
-							on:touchend={handleTouchEnd}
-							on:touchmove={handleTouchMove}
 						>
 							<div class="flex items-start gap-3">
 								<div class="mt-1 flex-shrink-0">
@@ -596,7 +555,7 @@
 						</button>
 						<!-- Context menu trigger button -->
 						<button
-							class="absolute top-2 right-2 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-700"
+							class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 							on:click={(e) => {
 								e.stopPropagation();
 								showContextMenu(e, 'note', result.noteResult!.note);

@@ -1,41 +1,70 @@
 # Filo - Modern Note-Taking Application
 
-A clean, fast, and intelligent note-taking application built with SvelteKit and Firebase. Features real-time sync, markdown support, and automatic saving to keep your thoughts organized and accessible across all devices.
+A clean, fast, and intelligent note-taking application built with SvelteKit and Firebase. Features real-time sync, advanced markdown support, and intelligent auto-saving to keep your thoughts organized and accessible across all devices.
 
-## What You Can Do
+## ✨ Core Features
 
-### **Write and Organize**
+### **📝 Smart Writing Experience**
 
-- **Smart Auto-Save**: Your notes are saved automatically as you type - never lose your work
-- **Folders**: Organize your notes into folders for better structure
-- **Quick Switching**: Jump between notes instantly while your changes save in the background
-- **Advanced Markdown**: Full markdown with math equations (KaTeX), syntax highlighting, tables, footnotes, and task lists
+- **Intelligent Auto-Save**: Advanced auto-save system that only saves when content actually changes, with visual saving indicators
+- **Real-time Sync**: Changes appear instantly across all your devices with Firebase real-time database
+- **Folder Organization**: Create unlimited folders to organize your notes with hierarchical structure
+- **Quick Note Switching**: Jump between notes instantly while auto-save handles everything in the background
+- **Offline-First**: Continue working without internet connection - all changes sync when reconnected
 
-### **Find Anything Fast**
+### **🔍 Powerful Search & Discovery**
 
-- **Instant Search**: Find any note by typing part of its title or content
-- **Smart Results**: Recent notes appear first, with highlighted search terms
-- **Search Operators**: Use `folder:name` to search specific folders or `title:text` for titles only
+- **Full-Text Search**: Lightning-fast search across all notes and folders with intelligent ranking
+- **Advanced Search Operators**: 
+  - `folder:name` - Search within specific folders
+  - `title:text` - Search only in note titles
+  - Smart content matching with highlighted results
+- **Recent Notes Priority**: Recently modified notes appear first in search results
+- **Search Result Previews**: See content excerpts with highlighted matches
+- **Keyboard Navigation**: Navigate search results with arrow keys
 
-### **Export and Share**
+### **📤 Comprehensive Export System**
 
-- **Markdown Export**: Export individual notes as `.md` files
-- **Folder Export**: Download all notes in a folder as a ZIP archive with folder structure preserved
-- **Workspace Export**: Export your entire workspace as a ZIP with complete folder hierarchy
-- **Universal Format**: Markdown files work in any text editor or markdown processor
+- **Individual Note Export**: Export any note as `.md` (Markdown) or `.pdf` files
+- **Folder Export**: Download entire folders as ZIP archives with preserved structure
+- **Workspace Export**: Export your complete workspace with full folder hierarchy
+- **PDF Generation**: Server-side PDF generation with Firebase Functions for high-quality output
+- **Universal Markdown**: Files work in any text editor, documentation system, or markdown processor
+- **Batch Operations**: Export multiple items with progress indicators
 
-### **Comfortable Writing**
+### **🎨 Adaptive User Interface**
 
-- **Multiple Views**: Switch between editor-only, preview-only, or split view
-- **Dark/Light Theme**: Automatic theme detection or manual toggle
-- **Mobile Friendly**: Works perfectly on desktop, tablet, and mobile devices
-- **Keyboard Shortcuts**: Navigate faster with shortcuts like `Ctrl+1` for editor mode
+- **Triple View Modes**: Switch between editor-only, preview-only, or split view layouts
+- **Responsive Design**: Optimized experience on desktop, tablet, and mobile devices
+- **Dark/Light Theme**: Automatic system theme detection with manual toggle option
+- **Collapsible Sidebar**: Maximize writing space with collapsible navigation
+- **Context Menus**: Right-click menus for quick actions on notes and folders
+- **Mobile-First**: Touch-friendly interface with gesture support
 
-### **Reliable and Secure**
+### **⌨️ Advanced Markdown & Editing**
 
-- **Auto-Sync**: All notes sync instantly across your devices
-- **Offline Ready**: Keep working even without internet connection
-- **No Data Loss**: Built-in backup ensures your notes are always safe
+- **Rich Markdown Support**: Full CommonMark with extensive plugin ecosystem
+- **Mathematical Equations**: KaTeX integration for beautiful math rendering (`$inline$` and `$$block$$`)
+- **Syntax Highlighting**: 180+ programming languages supported via highlight.js
+- **Enhanced Tables**: Multi-line cells, alignment, and complex table layouts
+- **Task Lists**: Interactive checkboxes with `- [x] completed` and `- [ ] todo` syntax
+- **Typography Enhancements**:
+  - Subscript/Superscript: `H~2~O` and `x^2^`
+  - Highlighting: `==highlighted text==`
+  - Footnotes: `[^1]` with automatic linking
+  - Abbreviations: Hover tooltips for defined terms
+- **Code Features**: 
+  - Inline code and fenced code blocks
+  - Syntax highlighting with language detection
+  - Code block attributes and classes
+
+### **⚡ Developer-Grade Performance**
+
+- **CodeMirror 6**: Professional text editor with advanced features
+- **Intelligent Debouncing**: Smart auto-save timing to prevent excessive API calls
+- **Error Recovery**: Robust error handling with retry mechanisms
+- **Loading States**: Visual feedback for all operations with loading spinners
+- **Memory Efficient**: Optimized rendering for large notes and folders
 
 ## Getting Started
 
@@ -112,148 +141,328 @@ Filo supports extended markdown with powerful plugins and focuses on the univers
 - **Syntax Highlighting**: 180+ languages supported via highlight.js
 - **Code Attributes**: Add classes and attributes to code blocks
 
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
-| Action           | Shortcut       |
-| ---------------- | -------------- |
-| New note         | `Ctrl+N`       |
-| New folder       | `Ctrl+Shift+N` |
-| Search notes     | `Ctrl+K`       |
-| Bold text        | `Ctrl+B`       |
-| Italic text      | `Ctrl+I`       |
-| Insert link      | `Ctrl+K`       |
-| Editor mode      | `Ctrl+1`       |
-| Split view       | `Ctrl+2`       |
-| Preview mode     | `Ctrl+3`       |
-| Toggle dark mode | `Ctrl+D`       |
+| Category | Action | Shortcut | Description |
+|----------|--------|----------|-------------|
+| **File Operations** | New note | `Ctrl+N` | Create a new note in current folder |
+| | New folder | `Ctrl+Shift+N` | Create a new folder |
+| | Save | `Ctrl+S` | Manually save current note |
+| **Search & Navigation** | Search/Focus | `Ctrl+K` or `Ctrl+F` | Focus search input |
+| | Toggle sidebar | `Ctrl+\` | Show/hide sidebar navigation |
+| **Text Formatting** | Bold | `Ctrl+B` | Make selected text bold |
+| | Italic | `Ctrl+I` | Make selected text italic |
+| | Inline code | `Ctrl+E` | Wrap selection in backticks |
+| | Code block | `Ctrl+Shift+E` | Create fenced code block |
+| | Insert link | `Ctrl+L` | Insert markdown link |
+| **Headings** | Heading 1-6 | `Ctrl+1` to `Ctrl+6` | Insert heading at cursor |
+| **Lists** | Bullet list | `Ctrl+U` | Create unordered list |
+| | Numbered list | `Ctrl+O` | Create ordered list |
+| **View Modes** | Editor only | `Ctrl+Alt+1` | Show editor panel only |
+| | Split view | `Ctrl+Alt+2` | Show editor and preview |
+| | Preview only | `Ctrl+Alt+3` | Show preview panel only |
 
-## Technical Architecture
+## 🏗️ Technical Architecture
 
-### Frontend
+### **Frontend Stack**
 
-- **SvelteKit 2.0**: Modern web framework with SSR and static generation
-- **Svelte 5.0**: Reactive framework with runes and improved performance
-- **TypeScript**: Type-safe development with full IDE support
-- **Tailwind CSS 4.0**: Modern utility-first CSS framework
-- **CodeMirror 6**: Advanced text editor with markdown syntax highlighting
+- **SvelteKit 2.43+**: Modern full-stack web framework with SSR and static generation
+- **Svelte 5.0**: Reactive framework with new runes API and improved performance
+- **TypeScript 5.0+**: Full type safety with comprehensive IDE support
+- **Tailwind CSS 4.0**: Modern utility-first CSS framework with advanced features
+- **CodeMirror 6**: Professional-grade text editor with extensible architecture
+- **Vite 7.0+**: Lightning-fast build tool with hot module replacement
 
-### Backend & Infrastructure
+### **Backend & Cloud Services**
 
 - **Firebase 12.3**: Complete backend-as-a-service platform
-- **Firestore**: Real-time NoSQL database with offline support
-- **Firebase Hosting**: Fast, secure web hosting with global CDN
-- **Auto-scaling**: Handles unlimited notes and users without configuration
+- **Firestore**: Real-time NoSQL database with offline support and multi-region sync
+- **Firebase Functions**: Serverless functions for PDF generation and processing
+- **Firebase Hosting**: Global CDN with automatic SSL and performance optimization
+- **Auto-scaling**: Serverless architecture handles unlimited users without configuration
 
-### Key Features
+### **Markdown Processing Engine**
 
-- **Real-time sync**: Changes appear instantly across all your devices
-- **Smart auto-save**: Intelligent saving that only triggers on actual changes
-- **Advanced markdown**: Full markdown support with KaTeX math, syntax highlighting, and tables
-- **Full-text search**: Lightning-fast search across all notes and folders
-- **Markdown export**: Export notes, folders, or entire workspace as universal `.md` files
-- **Responsive design**: Perfect experience on desktop, tablet, and mobile
-- **Offline-first**: Continue working without internet, sync when reconnected
+- **markdown-it**: Extensible markdown parser with comprehensive plugin ecosystem
+- **KaTeX**: Fast math typesetting with LaTeX syntax support
+- **highlight.js**: Syntax highlighting for 180+ programming languages
+- **Advanced Plugins**:
+  - Tables with multi-line cells and alignment
+  - Task lists with interactive checkboxes
+  - Footnotes with automatic back-linking
+  - Definition lists for structured content
+  - Abbreviations with hover tooltips
+  - Subscript/superscript notation
+  - Text highlighting and attributes
+  - Code block enhancements
 
-## Development
+### **Export & File Processing**
 
-### Build Commands
+- **JSZip**: Client-side ZIP archive creation for bulk exports
+- **file-saver**: Cross-browser file download handling
+- **PDF Generation**: Server-side PDF creation via Firebase Functions
+- **Sanitization**: Filename sanitization for cross-platform compatibility
+
+### **Development & Quality Assurance**
+
+- **ESLint 9.22+**: Advanced linting with TypeScript and Svelte support
+- **Prettier 3.4+**: Code formatting with Svelte and Tailwind plugins
+- **TypeScript ESLint**: Comprehensive type checking and style enforcement
+- **Hot Reload**: Instant development feedback with preserved state
+
+### **Performance Features**
+
+- **Real-time Synchronization**: Sub-second sync across devices with conflict resolution
+- **Smart Auto-save**: Debounced saving that only triggers on actual content changes
+- **Offline-first Architecture**: Full functionality without internet connection
+- **Intelligent Caching**: Optimized data loading with Firebase offline persistence
+- **Memory Management**: Efficient rendering for large documents and workspaces
+- **Progressive Enhancement**: Works with JavaScript disabled for core functionality
+
+## 🚀 Development
+
+### **Prerequisites**
+
+- **Node.js 18+**: Latest LTS version recommended
+- **npm/yarn**: Package manager of your choice
+- **Firebase Account**: Free tier provides generous limits for personal use
+- **Modern Browser**: Chrome, Firefox, Safari, or Edge with ES2022 support
+
+### **Build Commands**
 
 ```bash
+# Development
 npm run dev        # Start development server with hot reload
-npm run build      # Build for production (static site)
-npm run preview    # Preview production build locally
-npm run check      # Type check with svelte-check
+npm run check      # TypeScript and Svelte type checking
+npm run check:watch # Continuous type checking
+
+# Code Quality
 npm run lint       # Run ESLint and Prettier checks
 npm run format     # Format code with Prettier
+
+# Production
+npm run build      # Build for production (static site)
+npm run preview    # Preview production build locally
 ```
 
-### Deployment
+### **Project Structure**
 
-#### Firebase Hosting Setup
+```
+src/
+├── lib/
+│   ├── components/           # Reusable Svelte components
+│   │   ├── MainEditor.svelte    # Main editing interface
+│   │   ├── MarkdownEditor.svelte # CodeMirror integration
+│   │   ├── MarkdownPreview.svelte # Rendered preview
+│   │   ├── Sidebar.svelte       # Navigation sidebar
+│   │   ├── TopBar.svelte        # Top navigation
+│   │   ├── SearchResults.svelte # Search interface
+│   │   └── ...modals and utilities
+│   ├── auto-save.ts          # Intelligent auto-save system
+│   ├── export-import-service.ts # File export/import logic
+│   ├── firebase-service.ts   # Firebase/Firestore operations
+│   ├── keyboard-shortcuts.ts # Keyboard shortcut handling
+│   ├── markdown-renderer.ts  # Markdown processing engine
+│   ├── pdf-service.ts        # PDF generation service
+│   ├── search-service.ts     # Advanced search functionality
+│   ├── stores.ts            # Svelte stores for state management
+│   └── types.ts             # TypeScript type definitions
+└── routes/
+    ├── +layout.svelte       # App layout and global styles
+    ├── +layout.ts          # Layout configuration
+    └── +page.svelte        # Main application page
 
-1. **Install Firebase CLI** (if not already installed):
+functions/                   # Firebase Functions
+├── src/index.ts            # PDF generation endpoint
+└── package.json           # Function dependencies
 
+static/                     # Static assets
+└── robots.txt             # SEO configuration
+```
+
+### **Deployment Options**
+
+#### Firebase Hosting (Recommended)
+
+1. **Install Firebase CLI**:
    ```bash
    npm install -g firebase-tools
-   ```
-
-2. **Login to Firebase**:
-
-   ```bash
    firebase login
    ```
 
-3. **Initialize Firebase Hosting** (already configured in this project):
-
+2. **Initialize Project** (already configured):
    ```bash
    firebase init hosting
    ```
 
-4. **Deploy to Firebase Hosting**:
-
+3. **Deploy**:
    ```bash
-   # Build the app first
    npm run build
-
-   # Deploy to Firebase
    firebase deploy --only hosting
    ```
 
-#### Hosting Configuration
+#### Alternative Platforms
 
-- **Static Adapter**: Uses `@sveltejs/adapter-static` for pre-rendered static site
-- **Build Output**: `build/` directory contains all static assets
-- **SPA Routing**: All routes fallback to `index.html` for client-side navigation
-- **Firebase CLI**: Simple deployment without CI/CD complexity
+- **Vercel**: `npm run build` → Deploy `build/` directory
+- **Netlify**: `npm run build` → Deploy `build/` directory  
+- **GitHub Pages**: Configure GitHub Actions for automatic deployment
+- **Self-hosted**: Serve `build/` directory with any static file server
 
-Your app will be available at: `https://your-project-id.web.app`
+### **Environment Configuration**
 
-## Future Enhancements
+Create `.env` file for Firebase configuration:
 
-### Coming Soon
+```env
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
 
-- **User Accounts**: Sign in to access your notes from anywhere
-- **Sharing**: Share notes and folders with others
-- **Rich Text Editor**: Bold, italic, and formatting buttons
-- **Export Options**: Download notes and folders as Markdown files
-- **Mobile Apps**: Native iOS and Android apps
+# Optional: Firebase Functions (for PDF generation)
+VITE_FIREBASE_FUNCTIONS_URL=https://region-project.cloudfunctions.net
+```
 
-### Advanced Features
+## 🛣️ Roadmap & Future Enhancements
 
-- **Team Collaboration**: Real-time collaborative editing
-- **Plugin System**: Add custom features and integrations
-- **Advanced Search**: Search by date, tags, and more filters
-- **Backup Options**: Export to Google Drive, Dropbox, etc.
-- **Themes**: More color schemes and customization options
+### **Version 2.0 - Enhanced User Experience**
+
+- **User Authentication**: Sign-in system with personal workspaces
+- **Cloud Backup**: Automatic backup to Google Drive, Dropbox, or OneDrive
+- **Rich Text Editor**: WYSIWYG editing mode alongside markdown
+- **Note Templates**: Pre-defined templates for meetings, projects, daily notes
+- **Tags System**: Tag-based organization with filtering and search
+- **Note Linking**: Internal linking between notes with backlinks
+
+### **Version 2.1 - Collaboration Features**
+
+- **Real-time Collaboration**: Multi-user editing with operational transforms
+- **Sharing & Permissions**: Share notes/folders with view or edit permissions
+- **Comments & Annotations**: Inline comments and collaborative feedback
+- **Version History**: Track changes with diff view and restore points
+- **Team Workspaces**: Shared spaces for teams and organizations
+
+### **Version 3.0 - Advanced Features**
+
+- **Mobile Applications**: Native iOS and Android apps with offline sync
+- **Plugin System**: Extensible architecture for custom functionality
+- **Advanced Search**: Semantic search, date filters, and saved searches
+- **AI Integration**: Smart suggestions, content generation, and summaries
+- **Enhanced Export**: Additional formats (DOCX, EPUB, HTML) with styling
+- **Data Visualization**: Charts, diagrams, and embedded media support
+
+### **Performance & Infrastructure**
+
+- **Edge Computing**: Deploy to edge locations for reduced latency
+- **Advanced Caching**: Intelligent caching strategies for faster loading
+- **Bulk Operations**: Enhanced performance for large workspaces
+- **Search Indexing**: Full-text search with fuzzy matching and typo tolerance
+- **Conflict Resolution**: Advanced merge strategies for simultaneous edits
 
 ## License
 
 This project is open source and available under the [MIT License](LICENSE).
 
-## Contributing
+## 🤝 Contributing
 
-We welcome contributions! Here's how to help:
+We welcome contributions from developers, designers, and users! Here's how you can help make Filo better:
 
-1. **Fork** the repository on GitHub
-2. **Create** a new branch for your feature
-3. **Make** your changes and test them
-4. **Submit** a pull request with a clear description
+### **Getting Started**
 
-Found a bug or have a feature request? [Open an issue](https://github.com/GShreekar/Filo/issues) and let us know!
+1. **Fork the Repository**: Click the "Fork" button on GitHub
+2. **Clone Your Fork**: 
+   ```bash
+   git clone https://github.com/your-username/Filo.git
+   cd filo
+   npm install
+   ```
+3. **Create a Branch**: 
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+4. **Make Changes**: Implement your feature or bug fix
+5. **Test Your Changes**: 
+   ```bash
+   npm run check
+   npm run lint
+   npm run build
+   ```
+6. **Submit Pull Request**: Create a PR with clear description of changes
 
-## Acknowledgments
+### **Areas for Contribution**
 
-Built with amazing open-source tools:
+- **🐛 Bug Fixes**: Fix issues and improve stability
+- **✨ Features**: Implement items from the roadmap
+- **📚 Documentation**: Improve README, code comments, and guides
+- **🎨 UI/UX**: Enhance design and user experience
+- **🔧 Performance**: Optimize loading times and memory usage
+- **🧪 Testing**: Add unit tests and integration tests
+- **🌐 Accessibility**: Improve screen reader and keyboard navigation support
 
-- [SvelteKit](https://kit.svelte.dev/) - Full-stack web framework
-- [Svelte 5](https://svelte.dev/) - Reactive component framework
-- [Firebase](https://firebase.google.com/) - Backend services and hosting
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework
-- [CodeMirror](https://codemirror.net/) - Advanced text editor
-- [Markdown-it](https://github.com/markdown-it/markdown-it) - Markdown parser with plugins
-- [KaTeX](https://katex.org/) - Math typesetting
-- [Lucide](https://lucide.dev/) - Beautiful icon library
+### **Code Style Guidelines**
+
+- Follow existing TypeScript and Svelte conventions
+- Use Prettier for code formatting (`npm run format`)
+- Ensure all ESLint rules pass (`npm run lint`)
+- Add TypeScript types for all new code
+- Write clear, descriptive commit messages
+
+### **Reporting Issues**
+
+Found a bug or have a feature request? [Open an issue](https://github.com/GShreekar/Filo/issues) with:
+
+- **Bug Reports**: Steps to reproduce, expected vs actual behavior, screenshots
+- **Feature Requests**: Use case, proposed solution, potential alternatives
+- **Questions**: Use GitHub Discussions for general questions and ideas
+
+## 🙏 Acknowledgments
+
+Filo is built with incredible open-source technologies and tools:
+
+### **Core Framework & Build Tools**
+- [SvelteKit](https://kit.svelte.dev/) - Full-stack web framework with outstanding developer experience
+- [Svelte 5](https://svelte.dev/) - Reactive component framework with revolutionary runes API
+- [Vite](https://vitejs.dev/) - Lightning-fast build tool and development server
+- [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript with excellent tooling
+
+### **Backend & Infrastructure**
+- [Firebase](https://firebase.google.com/) - Complete backend platform with real-time database
+- [Firestore](https://firebase.google.com/products/firestore) - NoSQL database with offline support
+
+### **User Interface & Styling**
+- [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework for rapid development
+- [Lucide](https://lucide.dev/) - Beautiful, customizable icon library
+- [CodeMirror 6](https://codemirror.net/) - Advanced text editor with extensible architecture
+
+### **Markdown Processing & Rendering**
+- [markdown-it](https://github.com/markdown-it/markdown-it) - Configurable markdown parser with rich plugin ecosystem
+- [KaTeX](https://katex.org/) - Fast math typesetting library for beautiful equations
+- [highlight.js](https://highlightjs.org/) - Syntax highlighting for 180+ programming languages
+
+### **File Processing & Export**
+- [JSZip](https://stuk.github.io/jszip/) - JavaScript library for creating and reading ZIP files
+- [FileSaver.js](https://github.com/eligrey/FileSaver.js/) - Cross-browser file saving functionality
+
+### **Development & Quality Tools**
+- [ESLint](https://eslint.org/) - Pluggable JavaScript linting utility
+- [Prettier](https://prettier.io/) - Opinionated code formatter for consistent style
+- [@sveltejs/adapter-static](https://github.com/sveltejs/kit/tree/master/packages/adapter-static) - Static site generation for SvelteKit
+
+### **Special Thanks**
+
+- The Svelte team for creating an amazing framework that makes development joyful
+- The Firebase team for providing robust, scalable backend services
+- All contributors to the open-source markdown ecosystem
+- The developer community for inspiration, feedback, and contributions
 
 ---
 
-_Made with ❤️ for writers, thinkers, and note-takers everywhere._
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+**Copyright (c) 2024 GShreekar**
+
+*Made with ❤️ for writers, thinkers, and note-takers everywhere.*
