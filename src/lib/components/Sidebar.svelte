@@ -208,6 +208,11 @@
 			case 'newNote':
 				handleCreateNote(target.id);
 				break;
+			case 'newSubfolder':
+				if (type === 'folder') {
+					showNewSubfolderModal(target.id);
+				}
+				break;
 			case 'rename':
 				if (type === 'folder') {
 					showRenameModal('renameFolder', target.id, (target as FolderType).name);
@@ -275,17 +280,21 @@
 		});
 	}
 
-	function showNewFolderModal() {
+	function showNewFolderModal(parentId: string | null = null) {
 		inputModal.set({
 			visible: true,
-			title: 'New Folder',
+			title: parentId ? 'New Subfolder' : 'New Folder',
 			placeholder: 'Folder name',
 			value: '',
 			onConfirm: (name: string) => {
-				createFolder(name);
+				createFolder(name, parentId);
 				inputModal.update((modal) => ({ ...modal, visible: false }));
 			}
 		});
+	}
+
+	function showNewSubfolderModal(parentId: string) {
+		showNewFolderModal(parentId);
 	}
 
 	async function handleCreateNote(folderId: string) {
@@ -341,8 +350,22 @@
 		{} as Record<string, Note[]>
 	);
 
+	$: rootFolders = $folders.filter((folder) => folder.parentId === null);
+	
+	function getSubfolders(parentId: string): FolderType[] {
+		return $folders.filter((folder) => folder.parentId === parentId);
+	}
+
 	function getNotesInFolder(folderId: string): Note[] {
 		return $notes.filter((note) => note.folderId === folderId);
+	}
+
+	function getTotalNotesInFolderTree(folderId: string): number {
+		const directNotes = getNotesInFolder(folderId).length;
+		const subfolders = getSubfolders(folderId);
+		const subfolderNotes = subfolders.reduce((total, subfolder) => 
+			total + getTotalNotesInFolderTree(subfolder.id), 0);
+		return directNotes + subfolderNotes;
 	}
 
 	function handleSearchKeydown(event: KeyboardEvent) {
@@ -617,7 +640,7 @@
 			</button>
 
 			<button
-				on:click={showNewFolderModal}
+				on:click={() => showNewFolderModal()}
 				class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm text-white transition-colors hover:bg-blue-700"
 			>
 				<Plus class="h-4 w-4" />
@@ -831,137 +854,24 @@
 				</div>
 
 				<!-- Folders -->
-				{#if $folders.length > 0}
+				{#if rootFolders.length > 0}
 					<div class="mb-2">
 						<h3 class="mb-2 px-2 text-sm font-medium text-gray-500 dark:text-gray-400">Folders</h3>
 					</div>
 				{/if}
 
-				{#each $folders as folder}
-					<div class="mb-2">
-						<!-- Folder Header -->
-						<div
-							class="group relative flex items-center justify-between"
-							class:bg-blue-50={dragOverFolderId === folder.id}
-							class:dark:bg-blue-900={dragOverFolderId === folder.id}
-							role="menuitem"
-							tabindex="-1"
-							on:contextmenu={(e) => showContextMenu(e, 'folder', folder.id, folder.name)}
-							on:dragover={(e) => handleFolderDragOver(e, folder.id)}
-							on:dragleave={handleFolderDragLeave}
-							on:drop={(e) => handleFolderDrop(e, folder.id)}
-						>
-							<button
-								on:click={() => toggleFolder(folder.id)}
-								class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-							>
-								{#if expandedFolders.has(folder.id)}
-									<FolderOpen class="h-4 w-4 text-blue-600" />
-								{:else}
-									<Folder class="h-4 w-4 text-blue-600" />
-								{/if}
-
-								<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
-									{folder.name}
-								</span>
-							</button>
-							<!-- Context menu trigger button -->
-							<button
-								class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
-								on:click={(e) => {
-									e.stopPropagation();
-									showContextMenu(e, 'folder', folder.id, folder.name);
-								}}
-								title="More options"
-							>
-								<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-							</button>
-						</div>
-
-						<!-- Notes in Folder -->
-						{#if expandedFolders.has(folder.id)}
-							<div class="mt-1 ml-6">
-								{#each folderNotes[folder.id] || [] as note (note.id)}
-									<div
-										class="group relative flex items-center justify-between"
-										class:opacity-50={draggedNoteId === note.id}
-										role="menuitem"
-										tabindex="-1"
-										draggable="true"
-										on:dragstart={(e) => handleDragStart(e, note.id)}
-										on:dragend={handleDragEnd}
-										on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
-										on:touchstart={(e) => handleTouchStart(e, note.id)}
-										on:touchend={handleTouchEnd}
-										on:touchmove={handleTouchMove}
-									>
-										<button
-											on:click={() => selectNote(note)}
-											class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-											class:bg-blue-50={$selectedNote?.id === note.id}
-											class:dark:bg-blue-900={$selectedNote?.id === note.id}
-										>
-											<FileText class="h-4 w-4 text-gray-400" />
-											{#if editingNoteId === note.id}
-												<input
-													bind:this={titleInputElement}
-													bind:value={editingTitle}
-													on:keydown={handleTitleKeydown}
-													on:blur={saveNoteTitle}
-													class="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-													type="text"
-													placeholder="Enter note title..."
-												/>
-											{:else}
-												<span
-													class="cursor-pointer truncate text-sm text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
-													on:dblclick={() => startEditingNoteTitle(note.id, note.title)}
-													title="Double-click to edit title"
-													role="button"
-													tabindex="0"
-													on:keydown={(e) => {
-														if (e.key === 'Enter' || e.key === ' ') {
-															e.preventDefault();
-															startEditingNoteTitle(note.id, note.title);
-														}
-													}}
-												>
-													{note.title}
-												</span>
-											{/if}
-										</button>
-										<!-- Context menu trigger button -->
-										<button
-											class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
-											on:click={(e) => {
-												e.stopPropagation();
-												showContextMenu(e, 'note', note.id, note.title);
-											}}
-											title="More options"
-										>
-											<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-										</button>
-									</div>
-								{/each}
-
-								{#if (folderNotes[folder.id] || []).length === 0}
-									<div class="p-2 text-xs text-gray-500 italic dark:text-gray-400">
-										No notes yet
-									</div>
-								{/if}
-							</div>
-						{/if}
-					</div>
+				{#each rootFolders as folder}
+					{@render FolderTree(folder, 0)}
 				{/each}
 
-				{#if $folders.length === 0 && $notes.length === 0}
+				{#if rootFolders.length === 0 && $notes.length === 0}
 					<EmptyState
 						icon={Folder}
 						title="No notes yet"
 						description="Create your first note or folder to organize your content and get started with Filo."
 						actionText="Create Folder"
 						actionIcon={Plus}
-						on:action={showNewFolderModal}
+						on:action={() => showNewFolderModal()}
 					/>
 				{/if}
 			</div>
@@ -1011,3 +921,133 @@
 		/>
 	</div>
 {/if}
+
+{#snippet FolderTree(folder: FolderType, depth: number)}
+	<div class="mb-2" style="margin-left: {depth * 16}px">
+		<!-- Folder Header -->
+		<div
+			class="group relative flex items-center justify-between"
+			class:bg-blue-50={dragOverFolderId === folder.id}
+			class:dark:bg-blue-900={dragOverFolderId === folder.id}
+			role="menuitem"
+			tabindex="-1"
+			on:contextmenu={(e) => showContextMenu(e, 'folder', folder.id, folder.name)}
+			on:dragover={(e) => handleFolderDragOver(e, folder.id)}
+			on:dragleave={handleFolderDragLeave}
+			on:drop={(e) => handleFolderDrop(e, folder.id)}
+		>
+			<button
+				on:click={() => toggleFolder(folder.id)}
+				class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+			>
+				{#if expandedFolders.has(folder.id)}
+					<FolderOpen class="h-4 w-4 text-blue-600" />
+				{:else}
+					<Folder class="h-4 w-4 text-blue-600" />
+				{/if}
+
+				<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+					{folder.name}
+				</span>
+				
+				<!-- Show notes count -->
+				{#if getTotalNotesInFolderTree(folder.id) > 0}
+					<span class="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+						{getTotalNotesInFolderTree(folder.id)}
+					</span>
+				{/if}
+			</button>
+			<!-- Context menu trigger button -->
+			<button
+				class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+				on:click={(e) => {
+					e.stopPropagation();
+					showContextMenu(e, 'folder', folder.id, folder.name);
+				}}
+				title="More options"
+			>
+				<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+			</button>
+		</div>
+
+		<!-- Expanded content: Subfolders and Notes -->
+		{#if expandedFolders.has(folder.id)}
+			<div class="mt-1 ml-6">
+				<!-- Subfolders (recursive) - show above notes -->
+				{#each getSubfolders(folder.id) as subfolder}
+					{@render FolderTree(subfolder, depth + 1)}
+				{/each}
+
+				<!-- Notes in this folder -->
+				{#each folderNotes[folder.id] || [] as note (note.id)}
+					<div
+						class="group relative flex items-center justify-between"
+						class:opacity-50={draggedNoteId === note.id}
+						role="menuitem"
+						tabindex="-1"
+						draggable="true"
+						on:dragstart={(e) => handleDragStart(e, note.id)}
+						on:dragend={handleDragEnd}
+						on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
+						on:touchstart={(e) => handleTouchStart(e, note.id)}
+						on:touchend={handleTouchEnd}
+						on:touchmove={handleTouchMove}
+					>
+						<button
+							on:click={() => selectNote(note)}
+							class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+							class:bg-blue-50={$selectedNote?.id === note.id}
+							class:dark:bg-blue-900={$selectedNote?.id === note.id}
+						>
+							<FileText class="h-4 w-4 text-gray-400" />
+							{#if editingNoteId === note.id}
+								<input
+									bind:this={titleInputElement}
+									bind:value={editingTitle}
+									on:keydown={handleTitleKeydown}
+									on:blur={saveNoteTitle}
+									class="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+									type="text"
+									placeholder="Enter note title..."
+								/>
+							{:else}
+								<span
+									class="cursor-pointer truncate text-sm text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+									on:dblclick={() => startEditingNoteTitle(note.id, note.title)}
+									title="Double-click to edit title"
+									role="button"
+									tabindex="0"
+									on:keydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											startEditingNoteTitle(note.id, note.title);
+										}
+									}}
+								>
+									{note.title}
+								</span>
+							{/if}
+						</button>
+						<!-- Context menu trigger button -->
+						<button
+							class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+							on:click={(e) => {
+								e.stopPropagation();
+								showContextMenu(e, 'note', note.id, note.title);
+							}}
+							title="More options"
+						>
+							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+						</button>
+					</div>
+				{/each}
+
+				{#if (folderNotes[folder.id] || []).length === 0 && getSubfolders(folder.id).length === 0}
+					<div class="p-2 text-xs text-gray-500 italic dark:text-gray-400">
+						No notes or folders yet
+					</div>
+				{/if}
+			</div>
+		{/if}
+	</div>
+{/snippet}

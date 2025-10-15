@@ -58,7 +58,7 @@ export function searchNotes(query: string): EnhancedSearchResult[] {
 
 			results.push({
 				note,
-				folder: folder ? { id: folder.id, name: folder.name } : null,
+				folder: folder ? { id: folder.id, name: getFolderPath(folder.id, allFolders) } : null,
 				score: calculateScore(
 					titleMatches,
 					contentMatches,
@@ -142,7 +142,7 @@ export function searchAll(query: string): CombinedSearchResult[] {
 					type: 'note',
 					noteResult: {
 						note,
-						folder: folder ? { id: folder.id, name: folder.name } : null,
+						folder: folder ? { id: folder.id, name: getFolderPath(folder.id, allFolders) } : null,
 						score: calculateScore(
 							titleMatches,
 							contentMatches,
@@ -215,7 +215,7 @@ export function getRecentNotes(
 			const folder = allFolders.find((f) => f.id === note.folderId);
 			return {
 				note,
-				folder: folder ? { id: folder.id, name: folder.name } : null,
+				folder: folder ? { id: folder.id, name: getFolderPath(folder.id, allFolders) } : null,
 				score: 0,
 				matchType: 'recent' as const,
 				titleMatches: [],
@@ -322,6 +322,18 @@ function escapeHtml(text: string): string {
 	const div = document.createElement('div');
 	div.textContent = text;
 	return div.innerHTML;
+}
+
+export function getFolderPath(folderId: string, allFolders: Folder[]): string {
+	const folder = allFolders.find(f => f.id === folderId);
+	if (!folder) return '';
+	
+	if (folder.parentId === null) {
+		return folder.name;
+	}
+	
+	const parentPath = getFolderPath(folder.parentId, allFolders);
+	return `${parentPath} / ${folder.name}`;
 }
 
 export function formatTimeAgo(date: Date): string {

@@ -90,17 +90,27 @@ export async function exportWorkspace(
 		}
 	}
 
-	for (const folder of folders) {
-		const folderNotes = allNotes.filter((note) => note.folderId === folder.id);
-		if (folderNotes.length === 0) continue;
-
+	function createFolderInZip(folder: Folder, parentZipFolder: JSZip | null = null): JSZip | null {
 		const safeFolderName = sanitizeFilename(folder.name) || 'folder';
-		const folderZip = zip.folder(safeFolderName);
-
+		const folderZip = parentZipFolder ? parentZipFolder.folder(safeFolderName) : zip.folder(safeFolderName);
+		
+		const folderNotes = allNotes.filter((note) => note.folderId === folder.id);
 		for (const note of folderNotes) {
 			const safeFilename = sanitizeFilename(note.title) || 'untitled';
 			folderZip?.file(`${safeFilename}.md`, note.content);
 		}
+
+		const subfolders = folders.filter((f) => f.parentId === folder.id);
+		for (const subfolder of subfolders) {
+			createFolderInZip(subfolder, folderZip);
+		}
+
+		return folderZip;
+	}
+
+	const rootFolders = folders.filter((folder) => folder.parentId === null);
+	for (const folder of rootFolders) {
+		createFolderInZip(folder);
 	}
 
 	const blob = await zip.generateAsync({ type: 'blob' });

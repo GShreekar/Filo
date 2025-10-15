@@ -16,11 +16,12 @@ import type { Folder, Note } from './types';
 import { folders, notes } from './stores';
 import { showError, isLoading, isSaving } from './error-store';
 
-export async function createFolder(name: string): Promise<string> {
+export async function createFolder(name: string, parentId: string | null = null): Promise<string> {
 	try {
 		isLoading.set(true);
 		const docRef = await addDoc(collection(db, 'folders'), {
 			name,
+			parentId: parentId || null,
 			createdAt: Timestamp.now()
 		});
 		showError(`Folder "${name}" created successfully`, 'success');
@@ -54,18 +55,41 @@ export async function deleteFolder(id: string): Promise<void> {
 	try {
 		isLoading.set(true);
 
-		const notesQuery = query(collection(db, 'notes'), where('folderId', '==', id));
-		const notesSnapshot = await getDocs(notesQuery);
+		async function getAllSubfolderIds(parentId: string): Promise<string[]> {
+			const subfoldersQuery = query(collection(db, 'folders'), where('parentId', '==', parentId));
+			const subfoldersSnapshot = await getDocs(subfoldersQuery);
+			
+			const subfolderIds = subfoldersSnapshot.docs.map(doc => doc.id);
+			const allSubfolderIds = [...subfolderIds];
+			
+			for (const subfolderId of subfolderIds) {
+				const nestedIds = await getAllSubfolderIds(subfolderId);
+				allSubfolderIds.push(...nestedIds);
+			}
+			
+			return allSubfolderIds;
+		}
 
-		const deletePromises = notesSnapshot.docs.map((noteDoc) =>
-			deleteDoc(doc(db, 'notes', noteDoc.id))
+		const allSubfolderIds = await getAllSubfolderIds(id);
+		const allFolderIds = [id, ...allSubfolderIds];
+
+		const notesDeletePromises = allFolderIds.map(async (folderId) => {
+			const notesQuery = query(collection(db, 'notes'), where('folderId', '==', folderId));
+			const notesSnapshot = await getDocs(notesQuery);
+			return Promise.all(notesSnapshot.docs.map((noteDoc) =>
+				deleteDoc(doc(db, 'notes', noteDoc.id))
+			));
+		});
+
+		await Promise.all(notesDeletePromises);
+
+		const folderDeletePromises = allFolderIds.reverse().map((folderId) =>
+			deleteDoc(doc(db, 'folders', folderId))
 		);
 
-		await Promise.all(deletePromises);
+		await Promise.all(folderDeletePromises);
 
-		await deleteDoc(doc(db, 'folders', id));
-
-		showError('Folder and all its notes deleted successfully', 'success');
+		showError('Folder and all its contents deleted successfully', 'success');
 	} catch (error) {
 		console.error('Error deleting folder:', error);
 		showError('Failed to delete folder. Please try again.');
@@ -163,6 +187,7 @@ export function subscribeFolders() {
 				const folderData: Folder[] = snapshot.docs.map((doc) => ({
 					id: doc.id,
 					name: doc.data().name,
+					parentId: doc.data().parentId || null,
 					createdAt: doc.data().createdAt.toDate()
 				}));
 				folders.set(folderData);
