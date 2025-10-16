@@ -218,7 +218,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<div class="flex h-screen flex-col bg-white dark:bg-gray-800">
+<div class="flex h-full flex-col bg-white dark:bg-gray-800">
 	{#if $selectedNote}
 		<!-- Header with title and controls -->
 		<div

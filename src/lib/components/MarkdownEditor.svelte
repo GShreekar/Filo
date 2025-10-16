@@ -133,12 +133,106 @@
 	}
 
 	onMount(() => {
-		const extensions = [
+		const scrollToCursor = (view: EditorView) => {
+			try {
+				const selection = view.state.selection.main;
+				const domPos = view.domAtPos(selection.head);
+				
+				if (domPos.node) {
+					const element = domPos.node.nodeType === Node.ELEMENT_NODE 
+						? domPos.node as Element
+						: domPos.node.parentElement;
+					
+					if (element) {
+						element.scrollIntoView({ 
+							block: 'nearest',
+							behavior: 'smooth'
+						});
+					}
+				}
+			} catch (error) {
+				console.debug('Scroll error:', error);
+			}
+		};
+
+		const ensureCursorVisible = EditorView.updateListener.of((update) => {
+			if (update.selectionSet || update.docChanged) {
+				requestAnimationFrame(() => scrollToCursor(update.view));
+			}
+		});
+
+		const scrollOnNavigation = keymap.of([
+			{
+				key: 'Enter',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'ArrowDown',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'ArrowUp',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'ArrowLeft',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'ArrowRight',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'Home',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'End',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'PageUp',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			},
+			{
+				key: 'PageDown',
+				run: (view) => {
+					setTimeout(() => scrollToCursor(view), 30);
+					return false;
+				}
+			}
+		]);		const extensions = [
 			basicSetup,
 			markdown(),
 			keymap.of([indentWithTab]),
+			scrollOnNavigation,
 			oneDark,
 			EditorView.lineWrapping,
+			ensureCursorVisible,
 			EditorView.updateListener.of((update) => {
 				if (update.docChanged) {
 					const newContent = update.state.doc.toString();
@@ -152,7 +246,8 @@
 				},
 				'.cm-content': {
 					padding: '16px',
-					lineHeight: '1.6'
+					lineHeight: '1.6',
+					paddingBottom: '2rem'
 				},
 				'.cm-focused': {
 					outline: 'none'
@@ -164,7 +259,7 @@
 					fontFamily: 'inherit',
 					height: '100%',
 					overflow: 'auto',
-					paddingBottom: '3rem'
+					scrollBehavior: 'smooth'
 				}
 			})
 		];
