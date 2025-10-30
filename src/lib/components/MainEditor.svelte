@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { selectedNote, notes, sidebarCollapsed } from '$lib/stores';
+	import { selectedNote, notes, sidebarCollapsed, editorSplitRatio } from '$lib/stores';
 	import {
 		scheduleContentSave,
 		scheduleTitleSave,
@@ -13,6 +13,7 @@
 	import { showError } from '$lib/error-store';
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
+	import TabSlider from './TabSlider.svelte';
 	import { FileText, Eye, Edit, Clock, Smartphone, Monitor, Tablet, X, Plus } from 'lucide-svelte';
 	import { onMount, tick } from 'svelte';
 
@@ -214,6 +215,16 @@
 	function closeNote() {
 		selectedNote.set(null);
 	}
+
+	let splitContainer: HTMLElement;
+
+	function handleSplitResize(event: CustomEvent<{ size: number }>) {
+		if (splitContainer) {
+			const containerWidth = splitContainer.offsetWidth;
+			const ratio = event.detail.size / containerWidth;
+			editorSplitRatio.set(Math.max(0.2, Math.min(0.8, ratio)));
+		}
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -363,13 +374,25 @@
 		<!-- Editor Content -->
 		<div class="min-h-0 flex-1 overflow-hidden">
 			{#if viewMode === 'split' && !isMobile}
-				<div class="flex h-full min-w-0">
+				<div class="flex h-full min-w-0" bind:this={splitContainer}>
 					<div
-						class="min-h-0 min-w-0 flex-1 overflow-y-auto border-r border-gray-200 dark:border-gray-700"
+						class="min-h-0 min-w-0 overflow-y-auto border-r border-gray-200 dark:border-gray-700"
+						style="width: {$editorSplitRatio * 100}%"
 					>
 						<MarkdownEditor {content} onContentChange={handleContentChange} />
 					</div>
-					<div class="min-h-0 min-w-0 flex-1 overflow-y-auto">
+					<TabSlider
+						orientation="horizontal"
+						minSize={splitContainer ? splitContainer.offsetWidth * 0.2 : 200}
+						maxSize={splitContainer ? splitContainer.offsetWidth * 0.8 : 600}
+						initialSize={splitContainer ? splitContainer.offsetWidth * $editorSplitRatio : 400}
+						on:resize={handleSplitResize}
+						className="bg-gray-200 dark:bg-gray-700"
+					/>
+					<div 
+						class="min-h-0 min-w-0 overflow-y-auto"
+						style="width: {(1 - $editorSplitRatio) * 100}%"
+					>
 						<MarkdownPreview {content} />
 					</div>
 				</div>
@@ -383,8 +406,6 @@
 				</div>
 			{/if}
 		</div>
-
-		<!-- Mobile view mode tabs -->
 		{#if isMobile}
 			<div class="flex border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
 				<button

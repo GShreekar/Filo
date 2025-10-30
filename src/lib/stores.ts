@@ -3,10 +3,12 @@ import type { Folder, Note } from './types';
 import type { CombinedSearchResult } from './search-service';
 
 export const sidebarCollapsed = writable(false);
+export const sidebarWidth = writable(320);
 export const searchQuery = writable('');
 export const selectedNote = writable<Note | null>(null);
 export const selectedFolder = writable<string | null>(null);
 export const currentView = writable<'editor' | 'preview' | 'split'>('split');
+export const editorSplitRatio = writable(0.5);
 
 export const folders = writable<Folder[]>([]);
 export const notes = writable<Note[]>([]);

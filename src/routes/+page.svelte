@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { subscribeFolders, subscribeNotes } from '$lib/firebase-service';
-	import { sidebarCollapsed, selectedNote, notes } from '$lib/stores';
+	import { sidebarCollapsed, selectedNote, notes, sidebarWidth } from '$lib/stores';
 	import { createNote, createFolder } from '$lib/firebase-service';
 	import { shortcuts, matchesShortcut } from '$lib/keyboard-shortcuts';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import MainEditor from '$lib/components/MainEditor.svelte';
+	import TabSlider from '$lib/components/TabSlider.svelte';
 	import ErrorToast from '$lib/components/ErrorToast.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
@@ -128,6 +129,10 @@
 			sidebarCollapsed.set(true);
 		}
 	}
+
+	function handleSidebarResize(event: CustomEvent<{ size: number }>) {
+		sidebarWidth.set(event.detail.size);
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -138,16 +143,29 @@
 	<div class="flex flex-1 overflow-hidden">
 		<!-- Sidebar -->
 		<div
-			class="w-80 flex-shrink-0 transition-all duration-300"
+			class="flex-shrink-0"
 			class:hidden={$sidebarCollapsed}
 			class:absolute={isMobile && !$sidebarCollapsed}
 			class:inset-y-14={isMobile && !$sidebarCollapsed}
 			class:left-0={isMobile && !$sidebarCollapsed}
 			class:z-30={isMobile && !$sidebarCollapsed}
 			class:shadow-xl={isMobile && !$sidebarCollapsed}
+			style="width: {$sidebarCollapsed ? '0' : $sidebarWidth}px"
 		>
 			<Sidebar />
 		</div>
+
+		<!-- Sidebar Resizer -->
+		{#if !$sidebarCollapsed && !isMobile}
+			<TabSlider
+				orientation="horizontal"
+				minSize={200}
+				maxSize={600}
+				initialSize={$sidebarWidth}
+				on:resize={handleSidebarResize}
+				className="bg-gray-200 dark:bg-gray-700"
+			/>
+		{/if}
 
 		<!-- Overlay for mobile sidebar -->
 		{#if isMobile && !$sidebarCollapsed}

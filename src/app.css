@@ -769,3 +769,33 @@ body {
 :global(.katex-display .mtable .col-align-c) {
 	vertical-align: middle;
 }
+
+.tab-slider-transition {
+	transition: width 0.2s ease, height 0.2s ease;
+}
+
+.tab-slider-hover-zone {
+	position: relative;
+}
+
+.tab-slider-hover-zone::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: -2px;
+	right: -2px;
+	bottom: 0;
+	background: transparent;
+	cursor: col-resize;
+}
+
+.resize-transition {
+	transition: width 0.1s ease-out, height 0.1s ease-out;
+}
+
+.no-select {
+	user-select: none;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+}
