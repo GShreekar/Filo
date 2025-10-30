@@ -225,11 +225,222 @@
 					return false;
 				}
 			}
-		]);		const extensions = [
+		]);
+
+		const markdownShortcuts = keymap.of([
+			{
+				key: 'Ctrl-b',
+				run: () => {
+					wrapSelection('**', '**');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-b',
+				run: () => {
+					wrapSelection('**', '**');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-i',
+				run: () => {
+					wrapSelection('*', '*');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-i',
+				run: () => {
+					wrapSelection('*', '*');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-e',
+				run: () => {
+					wrapSelection('`', '`');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-e',
+				run: () => {
+					wrapSelection('`', '`');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-Shift-e',
+				run: () => {
+					insertText('\n```javascript\n', -14);
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-Shift-e',
+				run: () => {
+					insertText('\n```javascript\n', -14);
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-l',
+				run: () => {
+					wrapSelection('[', '](url)');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-l',
+				run: () => {
+					wrapSelection('[', '](url)');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-1',
+				run: () => {
+					insertLinePrefix('# ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-1',
+				run: () => {
+					insertLinePrefix('# ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-2',
+				run: () => {
+					insertLinePrefix('## ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-2',
+				run: () => {
+					insertLinePrefix('## ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-3',
+				run: () => {
+					insertLinePrefix('### ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-3',
+				run: () => {
+					insertLinePrefix('### ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-4',
+				run: () => {
+					insertLinePrefix('#### ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-4',
+				run: () => {
+					insertLinePrefix('#### ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-5',
+				run: () => {
+					insertLinePrefix('##### ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-5',
+				run: () => {
+					insertLinePrefix('##### ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-6',
+				run: () => {
+					insertLinePrefix('###### ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-6',
+				run: () => {
+					insertLinePrefix('###### ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-Shift-8',
+				run: () => {
+					insertLinePrefix('- ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-Shift-8',
+				run: () => {
+					insertLinePrefix('- ');
+					return true;
+				}
+			},
+			{
+				key: 'Ctrl-Shift-7',
+				run: () => {
+					insertLinePrefix('1. ');
+					return true;
+				}
+			},
+			{
+				key: 'Cmd-Shift-7',
+				run: () => {
+					insertLinePrefix('1. ');
+					return true;
+				}
+			}
+		]);
+
+		function insertLinePrefix(prefix: string) {
+			if (!editorView) return;
+
+			const selection = editorView.state.selection.main;
+			const line = editorView.state.doc.lineAt(selection.from);
+			const lineStart = line.from;
+			
+			const transaction = editorView.state.update({
+				changes: {
+					from: lineStart,
+					to: lineStart,
+					insert: prefix
+				},
+				selection: {
+					anchor: selection.from + prefix.length,
+					head: selection.to + prefix.length
+				}
+			});
+
+			editorView.dispatch(transaction);
+			editorView.focus();
+		}
+
+		const extensions = [
 			basicSetup,
 			markdown(),
 			keymap.of([indentWithTab]),
 			scrollOnNavigation,
+			markdownShortcuts,
 			oneDark,
 			EditorView.lineWrapping,
 			ensureCursorVisible,

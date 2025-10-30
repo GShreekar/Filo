@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import { subscribeFolders, subscribeNotes } from '$lib/firebase-service';
-	import { sidebarCollapsed, selectedNote, notes, sidebarWidth } from '$lib/stores';
-	import { createNote, createFolder } from '$lib/firebase-service';
+	import { sidebarCollapsed, selectedNote, notes, sidebarWidth, confirmModal, exportModal, importModal, helpModal, editorActions, selectedFolder } from '$lib/stores';
+	import { createNote, createFolder, deleteNote } from '$lib/firebase-service';
 	import { shortcuts, matchesShortcut } from '$lib/keyboard-shortcuts';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import MainEditor from '$lib/components/MainEditor.svelte';
 	import TabSlider from '$lib/components/TabSlider.svelte';
+	import HelpModal from '$lib/components/HelpModal.svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import ExportModal from '$lib/components/ExportModal.svelte';
+	import ImportModal from '$lib/components/ImportModal.svelte';
 	import ErrorToast from '$lib/components/ErrorToast.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
@@ -88,6 +93,27 @@
 			case 'toggle-sidebar':
 				sidebarCollapsed.update((collapsed) => !collapsed);
 				break;
+			case 'previous-note':
+				navigateToNote('previous');
+				break;
+			case 'next-note':
+				navigateToNote('next');
+				break;
+			case 'delete-note':
+				deleteCurrentNote();
+				break;
+			case 'rename-note':
+				renameCurrentNote();
+				break;
+			case 'export-note':
+				exportCurrentNote();
+				break;
+			case 'import-notes':
+				showImportModal();
+				break;
+			case 'show-help':
+				showHelpModal();
+				break;
 		}
 	}
 
@@ -101,13 +127,21 @@
 		for (const shortcut of shortcuts) {
 			if (matchesShortcut(event, shortcut)) {
 				const target = event.target as HTMLElement;
-				if (
-					target.tagName === 'INPUT' ||
+				
+				const isInEditor = target.tagName === 'INPUT' ||
 					target.tagName === 'TEXTAREA' ||
-					target.contentEditable === 'true'
-				) {
-					if (['bold', 'italic', 'link', 'code'].includes(shortcut.action)) {
-						continue;
+					target.contentEditable === 'true' ||
+					target.closest('.cm-editor');
+
+				if (['new-note', 'new-folder', 'save', 'search', 'toggle-sidebar', 'previous-note', 'next-note', 'delete-note', 'rename-note', 'export-note', 'import-notes', 'show-help'].includes(shortcut.action)) {
+					event.preventDefault();
+					handleGlobalShortcut(shortcut.action);
+					break;
+				}
+
+				if (isInEditor) {
+					if (['bold', 'italic', 'link', 'code', 'code-block', 'heading-1', 'heading-2', 'heading-3', 'heading-4', 'heading-5', 'heading-6', 'unordered-list', 'ordered-list'].includes(shortcut.action)) {
+						return;
 					}
 					return;
 				}
@@ -115,7 +149,7 @@
 				event.preventDefault();
 
 				if (shortcut.action.startsWith('view-')) {
-					continue;
+					return;
 				}
 
 				handleGlobalShortcut(shortcut.action);
@@ -132,6 +166,99 @@
 
 	function handleSidebarResize(event: CustomEvent<{ size: number }>) {
 		sidebarWidth.set(event.detail.size);
+	}
+
+	function navigateToNote(direction: 'next' | 'previous') {
+		if (!$selectedNote) return;
+
+		const currentNote = get(selectedNote);
+		if (!currentNote) return;
+		
+		console.log('Navigation debug:', {
+			direction,
+			currentNote: currentNote.title,
+			selectedNoteFolder: currentNote.folderId || 'none'
+		});
+		
+		const availableNotes = $notes.filter(note => {
+			if (currentNote.folderId) {
+				return note.folderId === currentNote.folderId;
+			} else {
+				return !note.folderId;
+			}
+		});
+
+		console.log('Available notes for navigation:', availableNotes.map(n => ({ title: n.title, folderId: n.folderId })));
+
+		if (availableNotes.length <= 1) {
+			console.log('Not enough notes to navigate');
+			return;
+		}
+
+		const currentIndex = availableNotes.findIndex(note => note.id === currentNote.id);
+		if (currentIndex === -1) {
+			console.log('Current note not found in available notes');
+			return;
+		}
+
+		let newIndex;
+		if (direction === 'next') {
+			newIndex = (currentIndex + 1) % availableNotes.length;
+		} else {
+			newIndex = currentIndex === 0 ? availableNotes.length - 1 : currentIndex - 1;
+		}
+
+		console.log('Navigating from index', currentIndex, 'to', newIndex);
+		selectedNote.set(availableNotes[newIndex]);
+	}
+
+	function deleteCurrentNote() {
+		if (!$selectedNote) return;
+
+		confirmModal.set({
+			visible: true,
+			title: 'Delete Note',
+			message: `Are you sure you want to delete "${$selectedNote.title}"? This action cannot be undone.`,
+			onConfirm: async () => {
+				if ($selectedNote) {
+					try {
+						await deleteNote($selectedNote.id);
+						selectedNote.set(null);
+					} catch (error) {
+						console.error('Failed to delete note:', error);
+					}
+				}
+			}
+		});
+	}
+
+	function renameCurrentNote() {
+		const currentNote = get(selectedNote);
+		if (currentNote) {
+			editorActions.set({ action: 'rename-title', timestamp: Date.now() });
+		}
+	}
+
+	function exportCurrentNote() {
+		if (!$selectedNote) return;
+		
+		exportModal.set({
+			visible: true,
+			type: 'note',
+			targetNote: $selectedNote
+		});
+	}
+
+	function showImportModal() {
+		importModal.set({
+			visible: true
+		});
+	}
+
+	function showHelpModal() {
+		helpModal.set({
+			visible: true
+		});
 	}
 </script>
 
@@ -192,5 +319,9 @@
 </div>
 
 <!-- Global Components -->
+<HelpModal bind:visible={$helpModal.visible} on:close={() => helpModal.set({ visible: false })} />
+<ConfirmModal />
+<ExportModal />
+<ImportModal />
 <ErrorToast />
 <LoadingSpinner />

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search, Menu, Plus, FolderPlus, X, Download, Upload } from 'lucide-svelte';
+	import { Search, Menu, Plus, FolderPlus, X, Download, Upload, HelpCircle } from 'lucide-svelte';
 	import {
 		sidebarCollapsed,
 		searchQuery,
@@ -10,7 +10,8 @@
 		notes,
 		inputModal,
 		exportModal,
-		importModal
+		importModal,
+		helpModal
 	} from '$lib/stores';
 	import { createNote, createFolder } from '$lib/firebase-service';
 	import { searchAll } from '$lib/search-service';
@@ -82,6 +83,10 @@
 				inputModal.update((modal) => ({ ...modal, visible: false }));
 			}
 		});
+	}
+
+	function handleHelp() {
+		helpModal.set({ visible: true });
 	}
 
 	function handleExportWorkspace() {
@@ -223,6 +228,14 @@
 	</div>
 
 	<div class="flex flex-shrink-0 items-center gap-1 sm:gap-2">
+		<button
+			on:click={handleHelp}
+			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+			title="Help & Shortcuts (Alt+H)"
+		>
+			<HelpCircle size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
+		</button>
+
 		<button
 			on:click={handleImport}
 			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"

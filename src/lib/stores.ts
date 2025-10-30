@@ -69,3 +69,17 @@ export const importModal = writable<{
 }>({
 	visible: false
 });
+
+export const helpModal = writable<{
+	visible: boolean;
+}>({
+	visible: false
+});
+
+export const editorActions = writable<{
+	action: string | null;
+	timestamp: number;
+}>({
+	action: null,
+	timestamp: 0
+});

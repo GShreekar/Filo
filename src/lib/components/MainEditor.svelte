@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { selectedNote, notes, sidebarCollapsed, editorSplitRatio } from '$lib/stores';
+	import { selectedNote, notes, sidebarCollapsed, editorSplitRatio, editorActions, helpModal } from '$lib/stores';
 	import {
 		scheduleContentSave,
 		scheduleTitleSave,
@@ -29,6 +29,11 @@
 
 	let previousNoteId: string | null = null;
 	let previousContent = '';
+
+	$: if ($editorActions.action === 'rename-title' && $selectedNote) {
+		startEditingTitle();
+		editorActions.set({ action: null, timestamp: 0 });
+	}
 
 	onMount(() => {
 		const checkDeviceType = () => {
@@ -194,20 +199,22 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (event.ctrlKey || event.metaKey) {
-			switch (event.key) {
-				case '1':
-					event.preventDefault();
-					setViewMode('editor');
-					break;
-				case '2':
-					event.preventDefault();
-					setViewMode('split');
-					break;
-				case '3':
-					event.preventDefault();
-					setViewMode('preview');
-					break;
+		if ((event.ctrlKey || event.metaKey)) {
+			if (event.altKey) {
+				switch (event.key) {
+					case '1':
+						event.preventDefault();
+						setViewMode('editor');
+						break;
+					case '2':
+						event.preventDefault();
+						setViewMode('split');
+						break;
+					case '3':
+						event.preventDefault();
+						setViewMode('preview');
+						break;
+				}
 			}
 		}
 	}
@@ -490,17 +497,29 @@
 					</button>
 				</div>
 				<div class="mt-8 text-xs text-gray-500 dark:text-gray-400">
-					<p>Keyboard shortcuts:</p>
+					<div class="flex items-center justify-center gap-2 mb-2">
+						<p>Keyboard shortcuts:</p>
+						<button
+							on:click={() => helpModal.set({ visible: true })}
+							class="text-blue-500 hover:text-blue-600 underline text-xs"
+							title="View all shortcuts"
+						>
+							View all
+						</button>
+					</div>
 					<div class="mt-2 space-y-1">
 						<div>
-							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+N</kbd> New
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Alt+N</kbd> New
 							note
 						</div>
 						<div>
 							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+K</kbd> Search
 						</div>
 						<div>
-							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+B</kbd> Toggle
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Alt+H</kbd> Help
+						</div>
+						<div>
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+\</kbd> Toggle
 							sidebar
 						</div>
 					</div>
