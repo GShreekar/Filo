@@ -9,9 +9,11 @@ import {
 	orderBy,
 	where,
 	Timestamp,
-	getDocs
+	getDocs,
+	writeBatch
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { requireUserId } from './auth';
 import type { Folder, Note } from './types';
 import { folders, notes } from './stores';
 import { showError, isLoading, isSaving } from './error-store';
@@ -19,9 +21,11 @@ import { showError, isLoading, isSaving } from './error-store';
 export async function createFolder(name: string, parentId: string | null = null): Promise<string> {
 	try {
 		isLoading.set(true);
+		const ownerId = requireUserId();
 		const docRef = await addDoc(collection(db, 'folders'), {
 			name,
 			parentId: parentId || null,
+			ownerId,
 			createdAt: Timestamp.now()
 		});
 		showError(`Folder "${name}" created successfully`, 'success');
@@ -54,40 +58,55 @@ export async function updateFolder(id: string, name: string): Promise<void> {
 export async function deleteFolder(id: string): Promise<void> {
 	try {
 		isLoading.set(true);
+		const ownerId = requireUserId();
 
 		async function getAllSubfolderIds(parentId: string): Promise<string[]> {
-			const subfoldersQuery = query(collection(db, 'folders'), where('parentId', '==', parentId));
+			const subfoldersQuery = query(
+				collection(db, 'folders'),
+				where('ownerId', '==', ownerId),
+				where('parentId', '==', parentId)
+			);
 			const subfoldersSnapshot = await getDocs(subfoldersQuery);
-			
-			const subfolderIds = subfoldersSnapshot.docs.map(doc => doc.id);
+
+			const subfolderIds = subfoldersSnapshot.docs.map((doc) => doc.id);
 			const allSubfolderIds = [...subfolderIds];
-			
+
 			for (const subfolderId of subfolderIds) {
 				const nestedIds = await getAllSubfolderIds(subfolderId);
 				allSubfolderIds.push(...nestedIds);
 			}
-			
+
 			return allSubfolderIds;
 		}
 
 		const allSubfolderIds = await getAllSubfolderIds(id);
 		const allFolderIds = [id, ...allSubfolderIds];
 
-		const notesDeletePromises = allFolderIds.map(async (folderId) => {
-			const notesQuery = query(collection(db, 'notes'), where('folderId', '==', folderId));
+		const noteIds: string[] = [];
+		for (const folderId of allFolderIds) {
+			const notesQuery = query(
+				collection(db, 'notes'),
+				where('ownerId', '==', ownerId),
+				where('folderId', '==', folderId)
+			);
 			const notesSnapshot = await getDocs(notesQuery);
-			return Promise.all(notesSnapshot.docs.map((noteDoc) =>
-				deleteDoc(doc(db, 'notes', noteDoc.id))
-			));
-		});
+			noteIds.push(...notesSnapshot.docs.map((noteDoc) => noteDoc.id));
+		}
 
-		await Promise.all(notesDeletePromises);
+		// Notes first, then folders deepest-first, so a partial failure never
+		// leaves notes stranded under a folder that no longer exists.
+		const deletions = [
+			...noteIds.map((noteId) => doc(db, 'notes', noteId)),
+			...allFolderIds.reverse().map((folderId) => doc(db, 'folders', folderId))
+		];
 
-		const folderDeletePromises = allFolderIds.reverse().map((folderId) =>
-			deleteDoc(doc(db, 'folders', folderId))
-		);
-
-		await Promise.all(folderDeletePromises);
+		for (let i = 0; i < deletions.length; i += 450) {
+			const batch = writeBatch(db);
+			for (const ref of deletions.slice(i, i + 450)) {
+				batch.delete(ref);
+			}
+			await batch.commit();
+		}
 
 		showError('Folder and all its contents deleted successfully', 'success');
 	} catch (error) {
@@ -106,10 +125,12 @@ export async function createNote(
 ): Promise<string> {
 	try {
 		isLoading.set(true);
+		const ownerId = requireUserId();
 		const docRef = await addDoc(collection(db, 'notes'), {
 			title,
 			content,
 			folderId: folderId || null,
+			ownerId,
 			createdAt: Timestamp.now(),
 			updatedAt: Timestamp.now()
 		});
@@ -177,9 +198,13 @@ export async function deleteNote(id: string): Promise<void> {
 	}
 }
 
-export function subscribeFolders() {
+export function subscribeFolders(userId: string) {
 	try {
-		const q = query(collection(db, 'folders'), orderBy('createdAt', 'asc'));
+		const q = query(
+			collection(db, 'folders'),
+			where('ownerId', '==', userId),
+			orderBy('createdAt', 'asc')
+		);
 
 		return onSnapshot(
 			q,
@@ -188,7 +213,8 @@ export function subscribeFolders() {
 					id: doc.id,
 					name: doc.data().name,
 					parentId: doc.data().parentId || null,
-					createdAt: doc.data().createdAt.toDate()
+					ownerId: doc.data().ownerId,
+					createdAt: doc.data().createdAt?.toDate() ?? new Date()
 				}));
 				folders.set(folderData);
 			},
@@ -204,9 +230,13 @@ export function subscribeFolders() {
 	}
 }
 
-export function subscribeNotes() {
+export function subscribeNotes(userId: string) {
 	try {
-		const q = query(collection(db, 'notes'), orderBy('updatedAt', 'desc'));
+		const q = query(
+			collection(db, 'notes'),
+			where('ownerId', '==', userId),
+			orderBy('updatedAt', 'desc')
+		);
 
 		return onSnapshot(
 			q,
@@ -216,8 +246,9 @@ export function subscribeNotes() {
 					title: doc.data().title,
 					content: doc.data().content,
 					folderId: doc.data().folderId,
-					createdAt: doc.data().createdAt.toDate(),
-					updatedAt: doc.data().updatedAt.toDate()
+					ownerId: doc.data().ownerId,
+					createdAt: doc.data().createdAt?.toDate() ?? new Date(),
+					updatedAt: doc.data().updatedAt?.toDate() ?? new Date()
 				}));
 				notes.set(noteData);
 			},

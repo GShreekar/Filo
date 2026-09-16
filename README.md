@@ -99,7 +99,8 @@ A clean, fast, and intelligent note-taking application built with SvelteKit and 
    VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
    VITE_FIREBASE_APP_ID=your_app_id
    ```
-4. **Start Writing**: Create your first folder and note!
+4. **Bind the Firebase CLI**: Run `firebase use --add` and select your project. This writes a local `.firebaserc`, which is gitignored so your project ID never ends up in the repo.
+5. **Start Writing**: Create your first folder and note!
 
 ### Requirements
 

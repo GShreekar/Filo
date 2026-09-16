@@ -12,6 +12,17 @@ export {
 export { errors, isLoading, isSaving, showError, clearError, clearAllErrors } from './error-store';
 
 export {
+	currentUser,
+	authReady,
+	accessDenied,
+	initAuth,
+	signInWithGoogle,
+	signOut,
+	isAllowedUser,
+	getCurrentUserId
+} from './auth';
+
+export {
 	autoSaveState,
 	scheduleContentSave,
 	scheduleTitleSave,

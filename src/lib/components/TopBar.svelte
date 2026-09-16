@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Search, Menu, Plus, FolderPlus, X, Download, Upload, HelpCircle } from 'lucide-svelte';
+	import { Search, Menu, Plus, FolderPlus, X, Download, Upload, HelpCircle, LogOut } from 'lucide-svelte';
+	import { currentUser, signOut } from '$lib/auth';
 	import {
 		sidebarCollapsed,
 		searchQuery,
@@ -267,6 +268,28 @@
 		>
 			<FolderPlus size={20} class="text-gray-600 dark:text-gray-400" />
 		</button>
+
+		{#if $currentUser}
+			<div class="ml-1 flex items-center gap-1 border-l border-gray-200 pl-2 dark:border-gray-700">
+				{#if $currentUser.photoURL}
+					<img
+						src={$currentUser.photoURL}
+						alt=""
+						referrerpolicy="no-referrer"
+						class="h-7 w-7 rounded-full"
+						title={$currentUser.email ?? ''}
+					/>
+				{/if}
+				<button
+					on:click={signOut}
+					class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+					title="Sign out of {$currentUser.email ?? 'this account'}"
+					aria-label="Sign out"
+				>
+					<LogOut size={18} class="text-gray-600 dark:text-gray-400" />
+				</button>
+			</div>
+		{/if}
 	</div>
 </div>
 

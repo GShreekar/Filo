@@ -37,3 +37,9 @@ yarn-error.log*
 # Other
 *.local
 *.log
+docs/
+
+# Firebase project binding — identifies which Firebase project this deploys
+# to. Not a secret by itself, but kept out of a public repo on request.
+# Recreate it locally with `firebase use --add`.
+.firebaserc

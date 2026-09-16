@@ -3,6 +3,7 @@ export interface Folder {
 	name: string;
 	createdAt: Date;
 	parentId: string | null;
+	ownerId: string;
 }
 
 export interface Note {
@@ -12,6 +13,7 @@ export interface Note {
 	createdAt: Date;
 	updatedAt: Date;
 	folderId: string | null;
+	ownerId: string;
 }
 
 export interface SearchResult {

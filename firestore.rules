@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // The only accounts allowed to touch this deployment. Add an address here
+    // to grant access; remove it to revoke immediately, even for a signed-in
+    // session. Keep it in sync with VITE_ALLOWED_EMAILS, which controls the UI.
+    function allowedEmails() {
+      return [
+        'gsbksirsi@gmail.com'
+      ];
+    }
+
+    function isAllowedUser() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in allowedEmails();
+    }
+
+    // The stored document belongs to the caller.
+    function ownsExisting() {
+      return resource.data.ownerId == request.auth.uid;
+    }
+
+    // The document being written is stamped with the caller's uid. On an update
+    // this also blocks reassigning ownerId to someone else.
+    function ownsIncoming() {
+      return request.resource.data.ownerId == request.auth.uid;
+    }
+
+    match /folders/{folderId} {
+      allow read:   if isAllowedUser() && ownsExisting();
+      allow create: if isAllowedUser() && ownsIncoming();
+      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming();
+      allow delete: if isAllowedUser() && ownsExisting();
+    }
+
+    match /notes/{noteId} {
+      allow read:   if isAllowedUser() && ownsExisting();
+      allow create: if isAllowedUser() && ownsIncoming();
+      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming();
+      allow delete: if isAllowedUser() && ownsExisting();
+    }
+
+    // Everything else is closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,10 +1,14 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import { subscribeFolders, subscribeNotes } from '$lib/firebase-service';
-	import { sidebarCollapsed, selectedNote, notes, sidebarWidth, confirmModal, exportModal, importModal, helpModal, editorActions, selectedFolder } from '$lib/stores';
+	import { sidebarCollapsed, selectedNote, notes, folders, sidebarWidth, confirmModal, exportModal, importModal, helpModal, editorActions, selectedFolder, searchQuery } from '$lib/stores';
 	import { createNote, createFolder, deleteNote } from '$lib/firebase-service';
+	import { initAuth, currentUser, authReady } from '$lib/auth';
+	import { clearAutoSaveState } from '$lib/auto-save';
 	import { shortcuts, matchesShortcut } from '$lib/keyboard-shortcuts';
+	import SignIn from '$lib/components/SignIn.svelte';
+	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 	import TopBar from '$lib/components/TopBar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import MainEditor from '$lib/components/MainEditor.svelte';
@@ -14,15 +18,44 @@
 	import ExportModal from '$lib/components/ExportModal.svelte';
 	import ImportModal from '$lib/components/ImportModal.svelte';
 	import ErrorToast from '$lib/components/ErrorToast.svelte';
-	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
 
 	let searchInput: HTMLInputElement;
 	let editorContainer: HTMLElement;
 	let isMobile = false;
 
+	let unsubscribeAuth: (() => void) | null = null;
+	let unsubscribeFolders: (() => void) | null = null;
+	let unsubscribeNotes: (() => void) | null = null;
+	let subscribedUserId: string | null = null;
+
+	// Re-point the Firestore listeners whenever the signed-in user changes, and
+	// drop every trace of the previous session's data on sign-out.
+	$: syncWorkspaceSubscriptions($currentUser?.uid ?? null);
+
+	function syncWorkspaceSubscriptions(userId: string | null) {
+		if (userId === subscribedUserId) return;
+
+		unsubscribeFolders?.();
+		unsubscribeNotes?.();
+		unsubscribeFolders = null;
+		unsubscribeNotes = null;
+		subscribedUserId = userId;
+
+		clearAutoSaveState();
+		selectedNote.set(null);
+		selectedFolder.set(null);
+		searchQuery.set('');
+		notes.set([]);
+		folders.set([]);
+
+		if (!userId) return;
+
+		unsubscribeFolders = subscribeFolders(userId);
+		unsubscribeNotes = subscribeNotes(userId);
+	}
+
 	onMount(() => {
-		const unsubscribeFolders = subscribeFolders();
-		const unsubscribeNotes = subscribeNotes();
+		unsubscribeAuth = initAuth();
 
 		const checkMobile = () => {
 			const wasMobile = isMobile;
@@ -38,10 +71,14 @@
 		window.addEventListener('resize', checkMobile);
 
 		return () => {
-			unsubscribeFolders();
-			unsubscribeNotes();
 			window.removeEventListener('resize', checkMobile);
 		};
+	});
+
+	onDestroy(() => {
+		unsubscribeFolders?.();
+		unsubscribeNotes?.();
+		unsubscribeAuth?.();
 	});
 
 	$: if ($selectedNote) {
@@ -264,6 +301,15 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
+{#if !$authReady}
+	<div class="flex h-full items-center justify-center">
+		<div
+			class="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400"
+		></div>
+	</div>
+{:else if !$currentUser}
+	<SignIn />
+{:else}
 <div class="flex h-full flex-col">
 	<TopBar bind:searchInput />
 
@@ -323,5 +369,7 @@
 <ConfirmModal />
 <ExportModal />
 <ImportModal />
+{/if}
+
 <ErrorToast />
 <LoadingSpinner />

@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
 const firebaseConfig = {
@@ -14,7 +15,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
+export const auth = getAuth(app);
 export const functions = getFunctions(app);
+
+export const googleProvider = new GoogleAuthProvider();
+
+// Skips the account chooser when only one account has ever been used here.
+googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 if (import.meta.env.DEV) {
 	try {
