@@ -8,3 +8,9 @@ typings/
 # Node.js dependency directory
 node_modules/
 *.local
+
+# Firebase Functions v2 loads these automatically at deploy/runtime. Keep the
+# real values out of git; .env.example is the committed template.
+.env
+.env.*
+!.env.example

@@ -5,7 +5,8 @@ service cloud.firestore {
 
     // The only accounts allowed to touch this deployment. Add an address here
     // to grant access; remove it to revoke immediately, even for a signed-in
-    // session. Keep it in sync with VITE_ALLOWED_EMAILS, which controls the UI.
+    // session. Keep it in sync with VITE_ALLOWED_EMAILS (client UI) and
+    // ALLOWED_EMAILS (the generatePDF function), which gate the same way.
     function allowedEmails() {
       return [
         'gsbksirsi@gmail.com'
@@ -29,17 +30,51 @@ service cloud.firestore {
       return request.resource.data.ownerId == request.auth.uid;
     }
 
+    // Field-shape checks below exist so a buggy client (or a compromised
+    // allowlisted session) can't corrupt a document into something the rest
+    // of the app crashes on — e.g. a missing createdAt used to crash the
+    // Firestore listener before src/lib/firebase-service.ts guarded it.
+    // They reject unexpected extra fields, wrong types, and oversized text.
+
+    function isValidFolder(data) {
+      return data.keys().hasOnly(['name', 'parentId', 'ownerId', 'createdAt'])
+        && data.ownerId is string
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 300
+        && (data.parentId == null || data.parentId is string)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidNote(data) {
+      return data.keys().hasOnly(['title', 'content', 'folderId', 'ownerId', 'createdAt', 'updatedAt'])
+        && data.ownerId is string
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 300
+        // Firestore caps a document at ~1MiB total; this just leaves headroom
+        // for the other fields instead of relying on that limit implicitly.
+        && data.content is string && data.content.size() <= 900000
+        && (data.folderId == null || data.folderId is string)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // createdAt is the document's identity in time — nothing should be able
+    // to rewrite it after creation, including the owner's own client.
+    function createdAtUnchanged() {
+      return request.resource.data.createdAt == resource.data.createdAt;
+    }
+
     match /folders/{folderId} {
       allow read:   if isAllowedUser() && ownsExisting();
-      allow create: if isAllowedUser() && ownsIncoming();
-      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming();
+      allow create: if isAllowedUser() && ownsIncoming() && isValidFolder(request.resource.data);
+      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming()
+                      && isValidFolder(request.resource.data) && createdAtUnchanged();
       allow delete: if isAllowedUser() && ownsExisting();
     }
 
     match /notes/{noteId} {
       allow read:   if isAllowedUser() && ownsExisting();
-      allow create: if isAllowedUser() && ownsIncoming();
-      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming();
+      allow create: if isAllowedUser() && ownsIncoming() && isValidNote(request.resource.data);
+      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming()
+                      && isValidNote(request.resource.data) && createdAtUnchanged();
       allow delete: if isAllowedUser() && ownsExisting();
     }
 
