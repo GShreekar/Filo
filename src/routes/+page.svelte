@@ -2,7 +2,20 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
 	import { subscribeFolders, subscribeNotes } from '$lib/firebase-service';
-	import { sidebarCollapsed, selectedNote, notes, folders, sidebarWidth, confirmModal, exportModal, importModal, helpModal, editorActions, selectedFolder, searchQuery } from '$lib/stores';
+	import {
+		sidebarCollapsed,
+		selectedNote,
+		notes,
+		folders,
+		sidebarWidth,
+		confirmModal,
+		exportModal,
+		importModal,
+		helpModal,
+		editorActions,
+		selectedFolder,
+		searchQuery
+	} from '$lib/stores';
 	import { createNote, createFolder, deleteNote } from '$lib/firebase-service';
 	import { initAuth, currentUser, authReady } from '$lib/auth';
 	import { clearAutoSaveState } from '$lib/auto-save';
@@ -164,20 +177,52 @@
 		for (const shortcut of shortcuts) {
 			if (matchesShortcut(event, shortcut)) {
 				const target = event.target as HTMLElement;
-				
-				const isInEditor = target.tagName === 'INPUT' ||
+
+				const isInEditor =
+					target.tagName === 'INPUT' ||
 					target.tagName === 'TEXTAREA' ||
 					target.contentEditable === 'true' ||
 					target.closest('.cm-editor');
 
-				if (['new-note', 'new-folder', 'save', 'search', 'toggle-sidebar', 'previous-note', 'next-note', 'delete-note', 'rename-note', 'export-note', 'import-notes', 'show-help'].includes(shortcut.action)) {
+				if (
+					[
+						'new-note',
+						'new-folder',
+						'save',
+						'search',
+						'toggle-sidebar',
+						'previous-note',
+						'next-note',
+						'delete-note',
+						'rename-note',
+						'export-note',
+						'import-notes',
+						'show-help'
+					].includes(shortcut.action)
+				) {
 					event.preventDefault();
 					handleGlobalShortcut(shortcut.action);
 					break;
 				}
 
 				if (isInEditor) {
-					if (['bold', 'italic', 'link', 'code', 'code-block', 'heading-1', 'heading-2', 'heading-3', 'heading-4', 'heading-5', 'heading-6', 'unordered-list', 'ordered-list'].includes(shortcut.action)) {
+					if (
+						[
+							'bold',
+							'italic',
+							'link',
+							'code',
+							'code-block',
+							'heading-1',
+							'heading-2',
+							'heading-3',
+							'heading-4',
+							'heading-5',
+							'heading-6',
+							'unordered-list',
+							'ordered-list'
+						].includes(shortcut.action)
+					) {
 						return;
 					}
 					return;
@@ -210,14 +255,14 @@
 
 		const currentNote = get(selectedNote);
 		if (!currentNote) return;
-		
+
 		console.log('Navigation debug:', {
 			direction,
 			currentNote: currentNote.title,
 			selectedNoteFolder: currentNote.folderId || 'none'
 		});
-		
-		const availableNotes = $notes.filter(note => {
+
+		const availableNotes = $notes.filter((note) => {
 			if (currentNote.folderId) {
 				return note.folderId === currentNote.folderId;
 			} else {
@@ -225,14 +270,17 @@
 			}
 		});
 
-		console.log('Available notes for navigation:', availableNotes.map(n => ({ title: n.title, folderId: n.folderId })));
+		console.log(
+			'Available notes for navigation:',
+			availableNotes.map((n) => ({ title: n.title, folderId: n.folderId }))
+		);
 
 		if (availableNotes.length <= 1) {
 			console.log('Not enough notes to navigate');
 			return;
 		}
 
-		const currentIndex = availableNotes.findIndex(note => note.id === currentNote.id);
+		const currentIndex = availableNotes.findIndex((note) => note.id === currentNote.id);
 		if (currentIndex === -1) {
 			console.log('Current note not found in available notes');
 			return;
@@ -278,7 +326,7 @@
 
 	function exportCurrentNote() {
 		if (!$selectedNote) return;
-		
+
 		exportModal.set({
 			visible: true,
 			type: 'note',
@@ -310,65 +358,65 @@
 {:else if !$currentUser}
 	<SignIn />
 {:else}
-<div class="flex h-full flex-col">
-	<TopBar bind:searchInput />
+	<div class="flex h-full flex-col">
+		<TopBar bind:searchInput />
 
-	<div class="flex flex-1 overflow-hidden">
-		<!-- Sidebar -->
-		<div
-			class="flex-shrink-0"
-			class:hidden={$sidebarCollapsed}
-			class:absolute={isMobile && !$sidebarCollapsed}
-			class:inset-y-14={isMobile && !$sidebarCollapsed}
-			class:left-0={isMobile && !$sidebarCollapsed}
-			class:z-30={isMobile && !$sidebarCollapsed}
-			class:shadow-xl={isMobile && !$sidebarCollapsed}
-			style="width: {$sidebarCollapsed ? '0' : $sidebarWidth}px"
-		>
-			<Sidebar />
-		</div>
-
-		<!-- Sidebar Resizer -->
-		{#if !$sidebarCollapsed && !isMobile}
-			<TabSlider
-				orientation="horizontal"
-				minSize={200}
-				maxSize={600}
-				initialSize={$sidebarWidth}
-				on:resize={handleSidebarResize}
-				className="bg-gray-200 dark:bg-gray-700"
-			/>
-		{/if}
-
-		<!-- Overlay for mobile sidebar -->
-		{#if isMobile && !$sidebarCollapsed}
+		<div class="flex flex-1 overflow-hidden">
+			<!-- Sidebar -->
 			<div
-				class="bg-opacity-50 fixed inset-0 z-20 bg-black transition-opacity"
-				on:click={() => sidebarCollapsed.set(true)}
-				role="presentation"
-			></div>
-		{/if}
-
-		<!-- Main Content -->
-		<main class="flex-1 overflow-hidden">
-			<button
-				class="h-full w-full overflow-hidden border-0 bg-transparent p-0 text-left outline-none focus:outline-0"
-				bind:this={editorContainer}
-				on:click={handleEditorFocus}
-				type="button"
-				aria-label="Editor area - click to focus and collapse sidebar on mobile"
+				class="flex-shrink-0"
+				class:hidden={$sidebarCollapsed}
+				class:absolute={isMobile && !$sidebarCollapsed}
+				class:inset-y-14={isMobile && !$sidebarCollapsed}
+				class:left-0={isMobile && !$sidebarCollapsed}
+				class:z-30={isMobile && !$sidebarCollapsed}
+				class:shadow-xl={isMobile && !$sidebarCollapsed}
+				style="width: {$sidebarCollapsed ? '0' : $sidebarWidth}px"
 			>
-				<MainEditor />
-			</button>
-		</main>
-	</div>
-</div>
+				<Sidebar />
+			</div>
 
-<!-- Global Components -->
-<HelpModal bind:visible={$helpModal.visible} on:close={() => helpModal.set({ visible: false })} />
-<ConfirmModal />
-<ExportModal />
-<ImportModal />
+			<!-- Sidebar Resizer -->
+			{#if !$sidebarCollapsed && !isMobile}
+				<TabSlider
+					orientation="horizontal"
+					minSize={200}
+					maxSize={600}
+					initialSize={$sidebarWidth}
+					on:resize={handleSidebarResize}
+					className="bg-gray-200 dark:bg-gray-700"
+				/>
+			{/if}
+
+			<!-- Overlay for mobile sidebar -->
+			{#if isMobile && !$sidebarCollapsed}
+				<div
+					class="fixed inset-0 z-20 bg-black/50 transition-opacity"
+					on:click={() => sidebarCollapsed.set(true)}
+					role="presentation"
+				></div>
+			{/if}
+
+			<!-- Main Content -->
+			<main class="flex-1 overflow-hidden">
+				<button
+					class="h-full w-full overflow-hidden border-0 bg-transparent p-0 text-left outline-none focus:outline-0"
+					bind:this={editorContainer}
+					on:click={handleEditorFocus}
+					type="button"
+					aria-label="Editor area - click to focus and collapse sidebar on mobile"
+				>
+					<MainEditor />
+				</button>
+			</main>
+		</div>
+	</div>
+
+	<!-- Global Components -->
+	<HelpModal bind:visible={$helpModal.visible} on:close={() => helpModal.set({ visible: false })} />
+	<ConfirmModal />
+	<ExportModal />
+	<ImportModal />
 {/if}
 
 <ErrorToast />

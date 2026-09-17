@@ -28,6 +28,14 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
+		// This listens on window (see below) so it works regardless of focus,
+		// which means it's live even while the dialog is closed unless guarded
+		// here. That matters more than it would for a plain Escape-to-close
+		// modal: Enter runs handleConfirm(), which re-invokes whatever
+		// destructive action (e.g. a delete) was last wired up, whether or not
+		// this dialog is currently the thing on screen.
+		if (!visible) return;
+
 		if (event.key === 'Escape') {
 			handleCancel();
 		} else if (event.key === 'Enter') {
@@ -43,12 +51,16 @@
 				: 'bg-blue-600 hover:bg-blue-700 text-white';
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 {#if visible}
 	<!-- Backdrop -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -- the keyboard
+	     equivalent (Escape) is handled globally via <svelte:window> above,
+	     not on this element -->
 	<div
-		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 		on:click={handleBackdropClick}
-		on:keydown={handleKeydown}
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"

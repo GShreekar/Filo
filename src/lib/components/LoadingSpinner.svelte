@@ -24,7 +24,7 @@
 
 <!-- Overlay for major loading operations -->
 {#if loading}
-	<div class="bg-opacity-20 fixed inset-0 z-40 flex items-center justify-center bg-black">
+	<div class="fixed inset-0 z-40 flex items-center justify-center bg-black/20">
 		<div class="flex items-center gap-3 rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
 			<Loader2 class="h-6 w-6 animate-spin text-blue-600" />
 			<span class="text-gray-700 dark:text-gray-300">Loading...</span>

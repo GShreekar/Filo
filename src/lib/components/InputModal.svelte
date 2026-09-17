@@ -34,6 +34,11 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
+		// Listens on window (see below), so it must stay quiet while closed —
+		// otherwise Enter anywhere in the app would re-run handleConfirm()
+		// against whatever this dialog's onConfirm was last wired to.
+		if (!visible) return;
+
 		if (event.key === 'Escape') {
 			handleCancel();
 		} else if (event.key === 'Enter') {
@@ -52,12 +57,16 @@
 	}
 </script>
 
+<svelte:window on:keydown={handleKeydown} />
+
 {#if visible}
 	<!-- Backdrop -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -- the keyboard
+	     equivalent (Escape) is handled globally via <svelte:window> above,
+	     not on this element -->
 	<div
-		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
 		on:click={handleBackdropClick}
-		on:keydown={handleKeydown}
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
@@ -87,7 +96,6 @@
 					bind:value
 					type="text"
 					{placeholder}
-					on:keydown={handleKeydown}
 					class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
 				/>
 			</div>

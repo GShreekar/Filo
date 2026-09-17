@@ -25,7 +25,7 @@
 		}
 		if (shortcut.altKey) parts.push('Alt');
 		if (shortcut.shiftKey) parts.push('Shift');
-		
+
 		let key = shortcut.key;
 		if (key === 'ArrowLeft') key = '←';
 		else if (key === 'ArrowRight') key = '→';
@@ -33,20 +33,26 @@
 		else if (key === 'ArrowDown') key = '↓';
 		else if (key === '\\') key = '\\';
 		else key = key.toUpperCase();
-		
+
 		parts.push(key);
 		return parts.join('+');
 	}
 
 	// Group shortcuts by category
 	$: groupedShortcuts = {
-		'File Operations': shortcuts.filter(s => ['new-note', 'new-folder', 'save', 'delete-note', 'rename-note'].includes(s.action)),
-		'Navigation': shortcuts.filter(s => ['search', 'toggle-sidebar', 'previous-note', 'next-note'].includes(s.action)),
-		'Text Formatting': shortcuts.filter(s => ['bold', 'italic', 'code', 'code-block', 'link'].includes(s.action)),
-		'Headings': shortcuts.filter(s => s.action.startsWith('heading-')),
-		'Lists': shortcuts.filter(s => ['unordered-list', 'ordered-list'].includes(s.action)),
-		'View Modes': shortcuts.filter(s => s.action.startsWith('view-')),
-		'Import/Export': shortcuts.filter(s => ['export-note', 'import-notes'].includes(s.action))
+		'File Operations': shortcuts.filter((s) =>
+			['new-note', 'new-folder', 'save', 'delete-note', 'rename-note'].includes(s.action)
+		),
+		Navigation: shortcuts.filter((s) =>
+			['search', 'toggle-sidebar', 'previous-note', 'next-note'].includes(s.action)
+		),
+		'Text Formatting': shortcuts.filter((s) =>
+			['bold', 'italic', 'code', 'code-block', 'link'].includes(s.action)
+		),
+		Headings: shortcuts.filter((s) => s.action.startsWith('heading-')),
+		Lists: shortcuts.filter((s) => ['unordered-list', 'ordered-list'].includes(s.action)),
+		'View Modes': shortcuts.filter((s) => s.action.startsWith('view-')),
+		'Import/Export': shortcuts.filter((s) => ['export-note', 'import-notes'].includes(s.action))
 	};
 </script>
 
@@ -55,7 +61,7 @@
 {#if visible}
 	<!-- Backdrop -->
 	<div
-		class="fixed inset-0 z-50 bg-black bg-opacity-50 transition-opacity"
+		class="fixed inset-0 z-50 bg-black/50 transition-opacity"
 		on:click={close}
 		role="presentation"
 	></div>
@@ -71,7 +77,9 @@
 			class="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-gray-800"
 		>
 			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
+			<div
+				class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700"
+			>
 				<h2 id="help-title" class="text-xl font-semibold text-gray-900 dark:text-gray-100">
 					Keyboard Shortcuts & Help
 				</h2>
@@ -90,16 +98,18 @@
 				<div class="mb-8">
 					<h3 class="mb-3 text-lg font-medium text-gray-900 dark:text-gray-100">About Filo</h3>
 					<p class="text-gray-600 dark:text-gray-400">
-						Filo is a powerful markdown note-taking application with real-time preview, 
-						folder organization, and Firebase sync. Create, edit, and organize your notes 
-						with ease using keyboard shortcuts and a clean interface.
+						Filo is a powerful markdown note-taking application with real-time preview, folder
+						organization, and Firebase sync. Create, edit, and organize your notes with ease using
+						keyboard shortcuts and a clean interface.
 					</p>
 				</div>
 
 				<!-- Shortcuts Section -->
 				<div>
-					<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">Keyboard Shortcuts</h3>
-					
+					<h3 class="mb-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+						Keyboard Shortcuts
+					</h3>
+
 					<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 						{#each Object.entries(groupedShortcuts) as [category, categoryShortcuts]}
 							{#if categoryShortcuts.length > 0}
@@ -113,7 +123,9 @@
 												<span class="text-sm text-gray-600 dark:text-gray-400">
 													{shortcut.description}
 												</span>
-												<kbd class="rounded bg-gray-100 px-2 py-1 text-xs font-mono text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+												<kbd
+													class="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+												>
 													{getKeyDisplay(shortcut)}
 												</kbd>
 											</div>
@@ -142,7 +154,10 @@
 			<!-- Footer -->
 			<div class="border-t border-gray-200 p-6 dark:border-gray-700">
 				<div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-					<span>Press <kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Esc</kbd> to close</span>
+					<span
+						>Press <kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Esc</kbd> to
+						close</span
+					>
 					<span>Filo v1.0</span>
 				</div>
 			</div>
@@ -152,6 +167,7 @@
 
 <style>
 	kbd {
-		font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+		font-family:
+			ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
 	}
 </style>

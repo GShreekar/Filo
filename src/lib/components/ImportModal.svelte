@@ -84,7 +84,7 @@
 
 {#if visible}
 	<div
-		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="import-title"
@@ -152,28 +152,25 @@
 				</div>
 			{:else}
 				<div class="space-y-4">
-			{#if importResult.success > 0}
-				<div class="flex items-center space-x-2 text-green-600 dark:text-green-400">
-					<CheckCircle size={20} />
-					<span class="font-medium">Import completed successfully!</span>
-				</div>
-			{:else}
-				<div class="flex items-center space-x-2 text-red-600 dark:text-red-400">
-					<AlertCircle size={20} />
-					<span class="font-medium">Import completed with errors</span>
-				</div>
-			{/if}					<div class="space-y-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+					{#if importResult.success > 0}
+						<div class="flex items-center space-x-2 text-green-600 dark:text-green-400">
+							<CheckCircle size={20} />
+							<span class="font-medium">Import completed successfully!</span>
+						</div>
+					{:else}
+						<div class="flex items-center space-x-2 text-red-600 dark:text-red-400">
+							<AlertCircle size={20} />
+							<span class="font-medium">Import completed with errors</span>
+						</div>
+					{/if}
+					<div class="space-y-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
 						<div class="flex justify-between text-sm">
 							<span class="text-gray-600 dark:text-gray-300">Notes imported:</span>
-							<span class="font-medium text-gray-900 dark:text-white"
-								>{importResult.success}</span
-							>
+							<span class="font-medium text-gray-900 dark:text-white">{importResult.success}</span>
 						</div>
 						<div class="flex justify-between text-sm">
 							<span class="text-gray-600 dark:text-gray-300">Failed imports:</span>
-							<span class="font-medium text-gray-900 dark:text-white"
-								>{importResult.failed}</span
-							>
+							<span class="font-medium text-gray-900 dark:text-white">{importResult.failed}</span>
 						</div>
 						{#if importResult.errors.length > 0}
 							<div class="flex justify-between text-sm">

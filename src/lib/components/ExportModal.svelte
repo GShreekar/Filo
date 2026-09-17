@@ -23,9 +23,8 @@
 		selectedFormat = 'markdown';
 	}
 
-	$: availableFormats = exportType === 'workspace' 
-		? ['markdown'] as const
-		: ['markdown', 'pdf'] as const;
+	$: availableFormats =
+		exportType === 'workspace' ? (['markdown'] as const) : (['markdown', 'pdf'] as const);
 
 	function close() {
 		visible = false;
@@ -47,8 +46,8 @@
 				await exportNote(targetNote, selectedFormat);
 			} else if (exportType === 'folder' && targetFolder) {
 				await exportFolder(
-					targetFolder, 
-					$notes, 
+					targetFolder,
+					$notes,
 					selectedFormat,
 					(completed, total, currentItem) => {
 						exportProgress = { completed, total, currentItem };
@@ -86,14 +85,16 @@
 				: 'Export all notes and folders as markdown files in a ZIP archive';
 
 	$: formatDescription = {
-		markdown: exportType === 'note' 
-			? 'Export as raw markdown (.md) file'
-			: exportType === 'folder'
-				? 'Export all notes as markdown files in a ZIP archive'
-				: 'Export all notes and folders as markdown files in a ZIP archive with complete folder hierarchy preserved',
-		pdf: exportType === 'note'
-			? 'Export as formatted PDF file'
-			: 'Export all notes as PDF files in a ZIP archive'
+		markdown:
+			exportType === 'note'
+				? 'Export as raw markdown (.md) file'
+				: exportType === 'folder'
+					? 'Export all notes as markdown files in a ZIP archive'
+					: 'Export all notes and folders as markdown files in a ZIP archive with complete folder hierarchy preserved',
+		pdf:
+			exportType === 'note'
+				? 'Export as formatted PDF file'
+				: 'Export all notes as PDF files in a ZIP archive'
 	};
 </script>
 
@@ -101,7 +102,7 @@
 
 {#if visible}
 	<div
-		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="export-title"
@@ -133,13 +134,13 @@
 						</legend>
 						<div class="space-y-2">
 							{#each availableFormats as format}
-								<label class="flex items-center space-x-3 cursor-pointer">
+								<label class="flex cursor-pointer items-center space-x-3">
 									<input
 										type="radio"
 										bind:group={selectedFormat}
 										value={format}
 										disabled={isExporting}
-										class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+										class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
 									/>
 									<div class="flex-1">
 										<div class="text-sm font-medium text-gray-900 dark:text-white">
@@ -185,7 +186,9 @@
 
 				<!-- Progress Indicator -->
 				{#if isExporting && exportProgress.total > 0}
-					<div class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+					<div
+						class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
+					>
 						<div class="space-y-3">
 							<div class="flex items-center justify-between">
 								<span class="text-sm font-medium text-blue-800 dark:text-blue-200">
@@ -195,17 +198,17 @@
 									{exportProgress.completed}/{exportProgress.total}
 								</span>
 							</div>
-							
+
 							<!-- Progress Bar -->
-							<div class="w-full bg-blue-200 rounded-full h-2 dark:bg-blue-800">
-								<div 
-									class="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+							<div class="h-2 w-full rounded-full bg-blue-200 dark:bg-blue-800">
+								<div
+									class="h-2 rounded-full bg-blue-600 transition-all duration-300 ease-out"
 									style="width: {(exportProgress.completed / exportProgress.total) * 100}%"
 								></div>
 							</div>
-							
+
 							{#if exportProgress.currentItem}
-								<p class="text-xs text-blue-700 dark:text-blue-300 truncate">
+								<p class="truncate text-xs text-blue-700 dark:text-blue-300">
 									Current: {exportProgress.currentItem}
 								</p>
 							{/if}

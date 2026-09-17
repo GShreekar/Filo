@@ -1,5 +1,12 @@
 <script lang="ts">
-	import { selectedNote, notes, sidebarCollapsed, editorSplitRatio, editorActions, helpModal } from '$lib/stores';
+	import {
+		selectedNote,
+		notes,
+		sidebarCollapsed,
+		editorSplitRatio,
+		editorActions,
+		helpModal
+	} from '$lib/stores';
 	import {
 		scheduleContentSave,
 		scheduleTitleSave,
@@ -7,7 +14,9 @@
 		autoSaveState,
 		saveCurrentNote,
 		setInitialNoteState,
-		saveCurrentNoteIfDirty
+		saveCurrentNoteIfDirty,
+		isContentDirty,
+		isTitleDirty
 	} from '$lib/auto-save';
 	import { createNote } from '$lib/firebase-service';
 	import { showError } from '$lib/error-store';
@@ -27,8 +36,23 @@
 	let titleInputElement: HTMLInputElement;
 	let currentNoteId: string | null = null;
 
-	let previousNoteId: string | null = null;
-	let previousContent = '';
+	// Note-switch and note-close both need to flush the previously active
+	// note's dirty state before touching autoSaveState for the next one.
+	// setInitialNoteState()/saveCurrentNoteIfDirty() already do that flush
+	// internally by reading autoSaveState's current noteId — but only
+	// correctly if calls happen one at a time. Chaining every switch through
+	// this promise serializes them, so rapidly clicking through several
+	// notes can't interleave two in-flight flushes and corrupt the store.
+	let noteStateChain: Promise<void> = Promise.resolve();
+
+	function runSerialized(task: () => Promise<void>) {
+		const run = () =>
+			task().catch((error) => {
+				console.error('Failed to persist note switch:', error);
+				showError('Failed to save changes while switching notes.');
+			});
+		noteStateChain = noteStateChain.then(run, run);
+	}
 
 	$: if ($editorActions.action === 'rename-title' && $selectedNote) {
 		startEditingTitle();
@@ -58,44 +82,52 @@
 	});
 
 	$: if ($selectedNote) {
-		if (currentNoteId !== $selectedNote.id && previousNoteId) {
-			saveCurrentNoteIfDirty(previousNoteId, previousContent).catch((error) => {
-				console.error('Failed to save previous note:', error);
-				showError('Failed to save previous note');
-			});
-		}
-
-		content = $selectedNote.content;
-
 		if (currentNoteId !== $selectedNote.id) {
-			setInitialNoteState($selectedNote.id, $selectedNote.content, $selectedNote.title);
+			// Switching notes: this is a genuinely different document, so
+			// replacing the editor's content outright is correct here.
+			const noteId = $selectedNote.id;
+			const noteContent = $selectedNote.content;
+			const noteTitle = $selectedNote.title;
+
+			runSerialized(() => setInitialNoteState(noteId, noteContent, noteTitle));
+
+			content = noteContent;
+			currentNoteId = noteId;
 			if (isEditingTitle) {
 				cancelEditingTitle();
 			}
-			previousNoteId = currentNoteId;
-			previousContent = content;
-			currentNoteId = $selectedNote.id;
+		} else if (!isContentDirty() && !isTitleDirty() && $selectedNote.content !== content) {
+			// Same note, and the store just handed us a Firestore snapshot
+			// that differs from what's on screen. This fires on *every*
+			// update to the open note, including the echo of our own save —
+			// only adopt it when nothing is locally dirty, otherwise this
+			// would overwrite whatever the user is still typing with the
+			// (now stale) content that was true before their latest
+			// keystrokes. When it's safe, it's either our own echo (already
+			// equal, so this branch doesn't fire) or a real edit from
+			// another tab/device, which is fine to adopt since nothing here
+			// would be lost.
+			content = $selectedNote.content;
 		}
-	} else {
-		if (previousNoteId) {
-			saveCurrentNoteIfDirty(previousNoteId, previousContent).catch((error) => {
-				console.error('Failed to save note on clear:', error);
-			});
-		}
+	} else if (currentNoteId) {
+		const noteId = currentNoteId;
+		runSerialized(async () => {
+			try {
+				await saveCurrentNoteIfDirty(noteId);
+			} finally {
+				clearAutoSaveState();
+			}
+		});
 
 		content = '';
-		clearAutoSaveState();
+		currentNoteId = null;
 		if (isEditingTitle) {
 			cancelEditingTitle();
 		}
-		previousNoteId = currentNoteId;
-		previousContent = content;
-		currentNoteId = null;
 	}
 
 	function handleContentChange(newContent: string) {
 		content = newContent;
-		previousContent = newContent;
 
 		if ($selectedNote) {
 			scheduleContentSave($selectedNote.id, newContent);
@@ -199,7 +231,7 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if ((event.ctrlKey || event.metaKey)) {
+		if (event.ctrlKey || event.metaKey) {
 			if (event.altKey) {
 				switch (event.key) {
 					case '1':
@@ -396,7 +428,7 @@
 						on:resize={handleSplitResize}
 						className="bg-gray-200 dark:bg-gray-700"
 					/>
-					<div 
+					<div
 						class="min-h-0 min-w-0 overflow-y-auto"
 						style="width: {(1 - $editorSplitRatio) * 100}%"
 					>
@@ -497,11 +529,11 @@
 					</button>
 				</div>
 				<div class="mt-8 text-xs text-gray-500 dark:text-gray-400">
-					<div class="flex items-center justify-center gap-2 mb-2">
+					<div class="mb-2 flex items-center justify-center gap-2">
 						<p>Keyboard shortcuts:</p>
 						<button
 							on:click={() => helpModal.set({ visible: true })}
-							class="text-blue-500 hover:text-blue-600 underline text-xs"
+							class="text-xs text-blue-500 underline hover:text-blue-600"
 							title="View all shortcuts"
 						>
 							View all
@@ -509,8 +541,7 @@
 					</div>
 					<div class="mt-2 space-y-1">
 						<div>
-							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Alt+N</kbd> New
-							note
+							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Alt+N</kbd> New note
 						</div>
 						<div>
 							<kbd class="rounded bg-gray-100 px-1 py-0.5 text-xs dark:bg-gray-700">Ctrl+K</kbd> Search
