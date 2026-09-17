@@ -23,6 +23,7 @@ import markdownItMark from 'markdown-it-mark';
 import markdownItFootnote from 'markdown-it-footnote';
 
 import hljs from 'highlight.js';
+import DOMPurify, { type Config as DOMPurifyConfig } from 'dompurify';
 
 let md: MarkdownIt | null = null;
 
@@ -129,9 +130,28 @@ function initializeMarkdown(): MarkdownIt {
 	return md;
 }
 
+// Notes are rendered with html:true (markdown-it) so raw HTML pasted into a
+// note works, but that means note content is untrusted HTML by the time it
+// gets here — a note is user input, and with per-user data the "user" who
+// wrote it isn't necessarily the one viewing it in every code path (e.g. a
+// future share feature, or this same HTML going into the PDF export
+// pipeline). Sanitize on every render rather than trusting the caller.
+//
+// Keep this in sync with the sanitizer config in
+// ../../functions/src/index.ts — that one guards the PDF renderer
+// server-side, this one guards the live preview; both need to allow the same
+// KaTeX/highlight.js/task-list output while blocking the same things.
+const SANITIZE_OPTIONS: DOMPurifyConfig = {
+	USE_PROFILES: { html: true, svg: true, svgFilters: true, mathMl: true },
+	FORBID_TAGS: ['style', 'link', 'base'],
+	ADD_TAGS: ['input'],
+	ADD_ATTR: ['type', 'checked', 'disabled']
+};
+
 export function renderMarkdown(content: string): string {
 	const renderer = initializeMarkdown();
-	return renderer.render(content);
+	const rendered = renderer.render(content);
+	return DOMPurify.sanitize(rendered, SANITIZE_OPTIONS);
 }
 
 export function resetMarkdownRenderer(): void {
