@@ -44,16 +44,27 @@ service cloud.firestore {
         && data.createdAt is timestamp;
     }
 
+    // Metadata only — no content. The sidebar/search-list listener subscribes
+    // to this collection, so keeping it small is the point (2.12): a note's
+    // body no longer has to download for every note just to render the list.
     function isValidNote(data) {
-      return data.keys().hasOnly(['title', 'content', 'folderId', 'ownerId', 'createdAt', 'updatedAt'])
+      return data.keys().hasOnly(['title', 'folderId', 'ownerId', 'createdAt', 'updatedAt'])
         && data.ownerId is string
         && data.title is string && data.title.size() > 0 && data.title.size() <= 300
-        // Firestore caps a document at ~1MiB total; this just leaves headroom
-        // for the other fields instead of relying on that limit implicitly.
-        && data.content is string && data.content.size() <= 900000
         && (data.folderId == null || data.folderId is string)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
+    }
+
+    // A note's body, split into its own doc (same id as the note) so it's
+    // only ever read for the note that's actually open, or in the one-time
+    // batched fetch that warms the client-side search cache.
+    function isValidNoteContent(data) {
+      return data.keys().hasOnly(['content', 'ownerId'])
+        && data.ownerId is string
+        // Firestore caps a document at ~1MiB total; this just leaves headroom
+        // for the ownerId field instead of relying on that limit implicitly.
+        && data.content is string && data.content.size() <= 900000;
     }
 
     // createdAt is the document's identity in time — nothing should be able
@@ -75,6 +86,14 @@ service cloud.firestore {
       allow create: if isAllowedUser() && ownsIncoming() && isValidNote(request.resource.data);
       allow update: if isAllowedUser() && ownsExisting() && ownsIncoming()
                       && isValidNote(request.resource.data) && createdAtUnchanged();
+      allow delete: if isAllowedUser() && ownsExisting();
+    }
+
+    match /noteContents/{noteId} {
+      allow read:   if isAllowedUser() && ownsExisting();
+      allow create: if isAllowedUser() && ownsIncoming() && isValidNoteContent(request.resource.data);
+      allow update: if isAllowedUser() && ownsExisting() && ownsIncoming()
+                      && isValidNoteContent(request.resource.data);
       allow delete: if isAllowedUser() && ownsExisting();
     }
 

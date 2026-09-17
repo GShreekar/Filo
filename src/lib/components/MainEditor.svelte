@@ -2,6 +2,7 @@
 	import {
 		selectedNote,
 		notes,
+		noteContentCache,
 		sidebarCollapsed,
 		editorSplitRatio,
 		editorActions,
@@ -18,13 +19,14 @@
 		isContentDirty,
 		isTitleDirty
 	} from '$lib/auto-save';
-	import { createNote } from '$lib/firebase-service';
+	import { createNote, subscribeNoteContent } from '$lib/firebase-service';
+	import { openNote } from '$lib/note-selection';
 	import { showError } from '$lib/error-store';
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import TabSlider from './TabSlider.svelte';
 	import { FileText, Eye, Edit, Clock, Smartphone, Monitor, Tablet, X, Plus } from 'lucide-svelte';
-	import { onMount, tick } from 'svelte';
+	import { onMount, onDestroy, tick } from 'svelte';
 
 	let content = '';
 	let viewMode: 'split' | 'editor' | 'preview' = 'split';
@@ -53,6 +55,22 @@
 			});
 		noteStateChain = noteStateChain.then(run, run);
 	}
+
+	// A note's body lives in its own doc (2.12), not the notes list, so it
+	// isn't part of $selectedNote until this fetches it. Swapped whenever the
+	// open note changes; also keeps the cache warm for search and feeds the
+	// "same note, not dirty" branch below once content arrives.
+	let unsubscribeContent: (() => void) | null = null;
+
+	function watchNoteContent(noteId: string) {
+		unsubscribeContent?.();
+		unsubscribeContent = subscribeNoteContent(noteId, (newContent) => {
+			noteContentCache.update((cache) => new Map(cache).set(noteId, newContent));
+			selectedNote.update((n) => (n && n.id === noteId ? { ...n, content: newContent } : n));
+		});
+	}
+
+	onDestroy(() => unsubscribeContent?.());
 
 	$: if ($editorActions.action === 'rename-title' && $selectedNote) {
 		startEditingTitle();
@@ -90,6 +108,7 @@
 			const noteTitle = $selectedNote.title;
 
 			runSerialized(() => setInitialNoteState(noteId, noteContent, noteTitle));
+			watchNoteContent(noteId);
 
 			content = noteContent;
 			currentNoteId = noteId;
@@ -118,6 +137,9 @@
 				clearAutoSaveState();
 			}
 		});
+
+		unsubscribeContent?.();
+		unsubscribeContent = null;
 
 		content = '';
 		currentNoteId = null;
@@ -496,7 +518,7 @@
 								const checkForNote = () => {
 									const newNote = $notes.find((n) => n.id === noteId);
 									if (newNote) {
-										selectedNote.set(newNote);
+										openNote(newNote);
 										if (typeof window !== 'undefined' && window.innerWidth < 768) {
 											sidebarCollapsed.set(true);
 										}

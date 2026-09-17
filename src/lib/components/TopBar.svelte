@@ -1,5 +1,15 @@
 <script lang="ts">
-	import { Search, Menu, Plus, FolderPlus, X, Download, Upload, HelpCircle, LogOut } from 'lucide-svelte';
+	import {
+		Search,
+		Menu,
+		Plus,
+		FolderPlus,
+		X,
+		Download,
+		Upload,
+		HelpCircle,
+		LogOut
+	} from 'lucide-svelte';
 	import { currentUser, signOut } from '$lib/auth';
 	import {
 		sidebarCollapsed,
@@ -7,7 +17,6 @@
 		searchResults,
 		selectedSearchIndex,
 		showSearchResults,
-		selectedNote,
 		notes,
 		inputModal,
 		exportModal,
@@ -15,26 +24,15 @@
 		helpModal
 	} from '$lib/stores';
 	import { createNote, createFolder } from '$lib/firebase-service';
+	import { openNote } from '$lib/note-selection';
 	import { searchAll } from '$lib/search-service';
 	import SearchResults from './SearchResults.svelte';
-	import InputModal from './InputModal.svelte';
-	import ExportModal from './ExportModal.svelte';
-	import ImportModal from './ImportModal.svelte';
 
 	export let searchInput: HTMLInputElement | undefined = undefined;
 
 	let searchContainer: HTMLDivElement;
 	let searchFocused = false;
 	let searchTimeout: NodeJS.Timeout;
-
-	let inputModalVisible = false;
-	$: inputModalVisible = $inputModal.visible;
-
-	let exportModalVisible = false;
-	$: exportModalVisible = $exportModal.visible;
-
-	let importModalVisible = false;
-	$: importModalVisible = $importModal.visible;
 
 	$: if ($searchQuery !== undefined) {
 		clearTimeout(searchTimeout);
@@ -61,7 +59,7 @@
 			const checkForNote = () => {
 				const newNote = $notes.find((n) => n.id === noteId);
 				if (newNote) {
-					selectedNote.set(newNote);
+					openNote(newNote);
 				} else {
 					setTimeout(checkForNote, 100);
 				}
@@ -148,7 +146,7 @@
 
 	function selectSearchResult(result: any, index: number) {
 		if (result.type === 'note' && result.noteResult) {
-			selectedNote.set(result.noteResult.note);
+			openNote(result.noteResult.note);
 			if (typeof window !== 'undefined' && window.innerWidth < 768) {
 				sidebarCollapsed.set(true);
 			}
@@ -293,23 +291,5 @@
 	</div>
 </div>
 
-<!-- Input Modal -->
-<InputModal
-	bind:visible={inputModalVisible}
-	title={$inputModal.title}
-	bind:value={$inputModal.value}
-	placeholder={$inputModal.placeholder}
-	on:confirm={(e) => $inputModal.onConfirm?.(e.detail)}
-	on:cancel={() => inputModal.update((modal) => ({ ...modal, visible: false }))}
-/>
-
-<!-- Export Modal -->
-<ExportModal
-	bind:visible={exportModalVisible}
-	exportType={$exportModal.type}
-	targetNote={$exportModal.targetNote}
-	targetFolder={$exportModal.targetFolder}
-/>
-
-<!-- Import Modal -->
-<ImportModal bind:visible={importModalVisible} />
+<!-- InputModal/ExportModal/ImportModal are mounted once, in +page.svelte, and
+     driven entirely by these same stores — nothing to render here. -->

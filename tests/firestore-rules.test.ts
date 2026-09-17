@@ -5,7 +5,15 @@ import {
 	assertSucceeds,
 	type RulesTestEnvironment
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, setLogLevel } from 'firebase/firestore';
+import {
+	doc,
+	getDoc,
+	setDoc,
+	updateDoc,
+	deleteDoc,
+	Timestamp,
+	setLogLevel
+} from 'firebase/firestore';
 import { beforeAll, afterAll, beforeEach, describe, test } from 'vitest';
 
 const OWNER_UID = 'owner-uid';
@@ -33,11 +41,14 @@ beforeEach(async () => {
 	await env.withSecurityRulesDisabled(async (ctx) => {
 		await setDoc(doc(ctx.firestore(), 'notes/owned'), {
 			title: 'Mine',
-			content: '',
 			folderId: null,
 			ownerId: OWNER_UID,
 			createdAt: Timestamp.now(),
 			updatedAt: Timestamp.now()
+		});
+		await setDoc(doc(ctx.firestore(), 'noteContents/owned'), {
+			content: 'body text',
+			ownerId: OWNER_UID
 		});
 		await setDoc(doc(ctx.firestore(), 'folders/owned'), {
 			name: 'Mine',
@@ -48,14 +59,21 @@ beforeEach(async () => {
 	});
 });
 
-// Shaped exactly like createNote()'s payload in src/lib/firebase-service.ts.
+// Shaped exactly like createNote()'s metadata write in firebase-service.ts —
+// content lives in a separate noteContents doc (2.12), not here.
 const note = (ownerId: string, overrides: Record<string, unknown> = {}) => ({
 	title: 'n',
-	content: '',
 	folderId: null,
 	ownerId,
 	createdAt: Timestamp.now(),
 	updatedAt: Timestamp.now(),
+	...overrides
+});
+
+// Shaped exactly like createNote()'s content write.
+const noteContent = (ownerId: string, overrides: Record<string, unknown> = {}) => ({
+	content: '',
+	ownerId,
 	...overrides
 });
 
@@ -68,7 +86,7 @@ const folder = (ownerId: string, overrides: Record<string, unknown> = {}) => ({
 	...overrides
 });
 
-describe('the allowlisted owner — notes', () => {
+describe('the allowlisted owner — notes (metadata)', () => {
 	test('reads and writes their own notes', async () => {
 		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
 		await assertSucceeds(getDoc(doc(db, 'notes/owned')));
@@ -81,16 +99,20 @@ describe('the allowlisted owner — notes', () => {
 		await assertFails(setDoc(doc(db, 'notes/theirs'), note(STRANGER_UID)));
 	});
 
-	test('partial updates shaped like the real app (title only, content only, move) succeed', async () => {
+	test('partial updates shaped like the real app (title, move) succeed', async () => {
 		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
-		await assertSucceeds(updateDoc(doc(db, 'notes/owned'), { title: 'New title', updatedAt: Timestamp.now() }));
-		await assertSucceeds(updateDoc(doc(db, 'notes/owned'), { content: 'body', updatedAt: Timestamp.now() }));
-		await assertSucceeds(updateDoc(doc(db, 'notes/owned'), { folderId: 'some-folder', updatedAt: Timestamp.now() }));
+		await assertSucceeds(
+			updateDoc(doc(db, 'notes/owned'), { title: 'New title', updatedAt: Timestamp.now() })
+		);
+		await assertSucceeds(
+			updateDoc(doc(db, 'notes/owned'), { folderId: 'some-folder', updatedAt: Timestamp.now() })
+		);
 	});
 
-	test('rejects a wrong-typed field', async () => {
+	test('rejects a content field — that belongs on noteContents now', async () => {
 		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
-		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { content: 12345 })));
+		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { content: 'nope' })));
+		await assertFails(updateDoc(doc(db, 'notes/owned'), { content: 'nope' }));
 	});
 
 	test('rejects an unexpected extra field', async () => {
@@ -111,6 +133,42 @@ describe('the allowlisted owner — notes', () => {
 	test('rejects rewriting createdAt on update', async () => {
 		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
 		await assertFails(updateDoc(doc(db, 'notes/owned'), { createdAt: Timestamp.now() }));
+	});
+});
+
+describe('the allowlisted owner — note contents', () => {
+	test('reads and writes their own note content', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertSucceeds(getDoc(doc(db, 'noteContents/owned')));
+		await assertSucceeds(setDoc(doc(db, 'noteContents/new'), noteContent(OWNER_UID)));
+		await assertSucceeds(updateDoc(doc(db, 'noteContents/owned'), { content: 'edited' }));
+		await assertSucceeds(deleteDoc(doc(db, 'noteContents/owned')));
+	});
+
+	test('cannot create content owned by someone else', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(setDoc(doc(db, 'noteContents/theirs'), noteContent(STRANGER_UID)));
+	});
+
+	test('rejects a wrong-typed content field', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(
+			setDoc(doc(db, 'noteContents/bad'), noteContent(OWNER_UID, { content: 12345 }))
+		);
+	});
+
+	test('rejects an unexpected extra field', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(
+			setDoc(doc(db, 'noteContents/bad'), noteContent(OWNER_UID, { title: 'sneaking in' }))
+		);
+	});
+
+	test('rejects oversized content', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(
+			setDoc(doc(db, 'noteContents/bad'), noteContent(OWNER_UID, { content: 'x'.repeat(900001) }))
+		);
 	});
 });
 
@@ -136,12 +194,14 @@ describe('everyone else', () => {
 	test('a signed-out visitor is denied', async () => {
 		const db = env.unauthenticatedContext().firestore();
 		await assertFails(getDoc(doc(db, 'notes/owned')));
+		await assertFails(getDoc(doc(db, 'noteContents/owned')));
 		await assertFails(setDoc(doc(db, 'notes/new'), note('anyone')));
 	});
 
 	test('a signed-in Google user not on the allowlist is denied', async () => {
 		const db = env.authenticatedContext(STRANGER_UID, STRANGER).firestore();
 		await assertFails(getDoc(doc(db, 'notes/owned')));
+		await assertFails(getDoc(doc(db, 'noteContents/owned')));
 		await assertFails(setDoc(doc(db, 'notes/new'), note(STRANGER_UID)));
 	});
 

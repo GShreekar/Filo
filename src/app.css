@@ -689,84 +689,90 @@ body {
 	color: #fefce8;
 }
 
-:global(.katex-display) {
+/* app.css is a plain stylesheet (imported from +layout.svelte), not a Svelte
+   component's <style> block — :global(...) is Svelte-compiler syntax and has
+   no meaning here. Every selector below already applies globally on its own;
+   they used to be wrapped in :global(...), which made them invalid CSS and
+   silently dropped by the browser (see docs/AUDIT.md 2.7). */
+
+.katex-display {
 	margin: 0 !important;
 	line-height: 1 !important;
 	display: block;
 	text-align: center;
 }
 
-:global(.katex-display .katex) {
+.katex-display .katex {
 	line-height: 1 !important;
 }
 
-:global(.katex .base, .katex .strut) {
+.katex .base,
+.katex .strut {
 	line-height: 1 !important;
 	display: inline-block;
 }
 
-:global(.katex-mathml) {
+.katex-mathml {
 	display: none;
 }
 
-:global(.katex) {
+.katex {
 	vertical-align: middle;
 }
 
-:global(.katex-display svg) {
+.katex-display svg {
 	vertical-align: top;
 	height: auto;
 }
 
-:global(p:has(.katex-display)) {
+p:has(.katex-display) {
 	margin: 0;
 }
 
-:global(.katex-display + br),
-:global(br + .katex-display) {
+.katex-display + br,
+br + .katex-display {
 	display: none;
 }
 
-:global(
-	.katex-display .mord,
-	.katex-display .mrel,
-	.katex-display .mbin,
-	.katex-display .mopen,
-	.katex-display .mclose
-) {
+.katex-display .mord,
+.katex-display .mrel,
+.katex-display .mbin,
+.katex-display .mopen,
+.katex-display .mclose {
 	line-height: 1 !important;
 }
 
-:global(
-	.katex-display .delimsizing,
-	.katex-display .delim-size1,
-	.katex-display .delim-size2,
-	.katex-display .delim-size3,
-	.katex-display .delim-size4
-) {
+.katex-display .delimsizing,
+.katex-display .delim-size1,
+.katex-display .delim-size2,
+.katex-display .delim-size3,
+.katex-display .delim-size4 {
 	line-height: 1 !important;
 	vertical-align: top;
 }
 
-:global(.katex-display .mtable, .katex-display .arraycolsep, .katex-display .col-align-c) {
+.katex-display .mtable,
+.katex-display .arraycolsep,
+.katex-display .col-align-c {
 	line-height: 1 !important;
 }
 
-:global(.katex-display span) {
+.katex-display span {
 	line-height: 1 !important;
 }
 
-:global(.katex-display .delimcenter, .katex-display .pstrut) {
+.katex-display .delimcenter,
+.katex-display .pstrut {
 	line-height: 1 !important;
 }
 
-:global(.katex-display *) {
+.katex-display * {
 	line-height: 1 !important;
 	margin-top: 0 !important;
 	margin-bottom: 0 !important;
 }
 
-:global(.katex-display .mtable .col-align-c) {
+.katex-display .mtable .col-align-c {
 	vertical-align: middle;
 }
 

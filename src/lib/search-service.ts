@@ -1,9 +1,9 @@
-import type { Folder, Note } from './types';
-import { notes, folders } from './stores';
+import type { Folder, NoteMeta } from './types';
+import { notes, folders, noteContentCache } from './stores';
 import { get } from 'svelte/store';
 
 export interface EnhancedSearchResult {
-	note: Note;
+	note: NoteMeta;
 	folder: { id: string; name: string } | null;
 	score: number;
 	matchType: 'title' | 'content' | 'both' | 'recent';
@@ -32,20 +32,35 @@ export interface MatchRange {
 	text: string;
 }
 
-export function searchNotes(query: string): EnhancedSearchResult[] {
+// Note bodies aren't part of the live notes list (2.12) — content search
+// reads them from this cache instead, which is populated by
+// getAllNoteContents() shortly after login and by openNote() for whichever
+// note is open. A note whose content hasn't been cached yet (a brief window
+// right after sign-in, before the background warm-up fetch resolves)
+// contributes no content matches until then; title search is unaffected
+// since titles are always part of the live metadata list.
+function contentOf(noteId: string, cache: Map<string, string>): string {
+	return cache.get(noteId) ?? '';
+}
+
+export function searchNotes(
+	query: string,
+	contentCache: Map<string, string> = get(noteContentCache)
+): EnhancedSearchResult[] {
 	const allNotes = get(notes);
 	const allFolders = get(folders);
 
 	if (!query.trim()) {
-		return getRecentNotes(allNotes, allFolders);
+		return getRecentNotes(allNotes, allFolders, contentCache);
 	}
 
 	const searchTerm = query.toLowerCase().trim();
 	const results: EnhancedSearchResult[] = [];
 
 	for (const note of allNotes) {
+		const content = contentOf(note.id, contentCache);
 		const titleMatches = findMatches(note.title.toLowerCase(), searchTerm);
-		const contentMatches = findMatches(note.content.toLowerCase(), searchTerm);
+		const contentMatches = findMatches(content.toLowerCase(), searchTerm);
 
 		if (titleMatches.length > 0 || contentMatches.length > 0) {
 			const folder = allFolders.find((f) => f.id === note.folderId);
@@ -59,13 +74,7 @@ export function searchNotes(query: string): EnhancedSearchResult[] {
 			results.push({
 				note,
 				folder: folder ? { id: folder.id, name: getFolderPath(folder.id, allFolders) } : null,
-				score: calculateScore(
-					titleMatches,
-					contentMatches,
-					note.title,
-					note.content,
-					note.updatedAt
-				),
+				score: calculateScore(titleMatches, contentMatches, note.title, note.updatedAt),
 				matchType,
 				titleMatches: titleMatches.map((match) => ({
 					...match,
@@ -73,9 +82,9 @@ export function searchNotes(query: string): EnhancedSearchResult[] {
 				})),
 				contentMatches: contentMatches.map((match) => ({
 					...match,
-					text: note.content.substring(match.start, match.end)
+					text: content.substring(match.start, match.end)
 				})),
-				excerpt: generateExcerpt(note.content, contentMatches, searchTerm),
+				excerpt: generateExcerpt(content, contentMatches, searchTerm),
 				lastModified: note.updatedAt
 			});
 		}
@@ -84,12 +93,15 @@ export function searchNotes(query: string): EnhancedSearchResult[] {
 	return results.sort((a, b) => b.score - a.score);
 }
 
-export function searchAll(query: string): CombinedSearchResult[] {
+export function searchAll(
+	query: string,
+	contentCache: Map<string, string> = get(noteContentCache)
+): CombinedSearchResult[] {
 	const allNotes = get(notes);
 	const allFolders = get(folders);
 
 	if (!query.trim()) {
-		return getRecentNotes(allNotes, allFolders).map((noteResult) => ({
+		return getRecentNotes(allNotes, allFolders, contentCache).map((noteResult) => ({
 			type: 'note' as const,
 			noteResult
 		}));
@@ -97,6 +109,19 @@ export function searchAll(query: string): CombinedSearchResult[] {
 
 	const parsedQuery = parseSearchQuery(query);
 	const searchTerm = parsedQuery.term.toLowerCase().trim();
+
+	// A bare "folder:"/"title:"/"content:" with nothing after the colon
+	// leaves an empty term here. Without this check it falls through to
+	// findMatches('', ...) below, which used to match at every character
+	// position — one MatchRange per character of every note's full content.
+	// Treat it the same as an empty query.
+	if (!searchTerm) {
+		return getRecentNotes(allNotes, allFolders, contentCache).map((noteResult) => ({
+			type: 'note' as const,
+			noteResult
+		}));
+	}
+
 	const results: CombinedSearchResult[] = [];
 
 	if (!parsedQuery.titleOnly && !parsedQuery.contentOnly) {
@@ -122,12 +147,13 @@ export function searchAll(query: string): CombinedSearchResult[] {
 
 	if (!parsedQuery.folderOnly) {
 		for (const note of allNotes) {
+			const content = parsedQuery.titleOnly ? '' : contentOf(note.id, contentCache);
 			const titleMatches = parsedQuery.contentOnly
 				? []
 				: findMatches(note.title.toLowerCase(), searchTerm);
 			const contentMatches = parsedQuery.titleOnly
 				? []
-				: findMatches(note.content.toLowerCase(), searchTerm);
+				: findMatches(content.toLowerCase(), searchTerm);
 
 			if (titleMatches.length > 0 || contentMatches.length > 0) {
 				const folder = allFolders.find((f) => f.id === note.folderId);
@@ -143,13 +169,7 @@ export function searchAll(query: string): CombinedSearchResult[] {
 					noteResult: {
 						note,
 						folder: folder ? { id: folder.id, name: getFolderPath(folder.id, allFolders) } : null,
-						score: calculateScore(
-							titleMatches,
-							contentMatches,
-							note.title,
-							note.content,
-							note.updatedAt
-						),
+						score: calculateScore(titleMatches, contentMatches, note.title, note.updatedAt),
 						matchType,
 						titleMatches: titleMatches.map((match) => ({
 							...match,
@@ -157,9 +177,9 @@ export function searchAll(query: string): CombinedSearchResult[] {
 						})),
 						contentMatches: contentMatches.map((match) => ({
 							...match,
-							text: note.content.substring(match.start, match.end)
+							text: content.substring(match.start, match.end)
 						})),
-						excerpt: generateExcerpt(note.content, contentMatches, searchTerm),
+						excerpt: generateExcerpt(content, contentMatches, searchTerm),
 						lastModified: note.updatedAt
 					}
 				});
@@ -204,11 +224,13 @@ function parseSearchQuery(query: string): ParsedQuery {
 	return { term, folderOnly, titleOnly, contentOnly };
 }
 export function getRecentNotes(
-	allNotes: Note[],
-	allFolders: any[],
+	allNotes: NoteMeta[],
+	allFolders: Folder[],
+	contentCache: Map<string, string> = get(noteContentCache),
 	limit = 10
 ): EnhancedSearchResult[] {
 	return allNotes
+		.slice()
 		.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
 		.slice(0, limit)
 		.map((note) => {
@@ -220,13 +242,18 @@ export function getRecentNotes(
 				matchType: 'recent' as const,
 				titleMatches: [],
 				contentMatches: [],
-				excerpt: generateExcerpt(note.content, [], ''),
+				excerpt: generateExcerpt(contentOf(note.id, contentCache), [], ''),
 				lastModified: note.updatedAt
 			};
 		});
 }
 
 function findMatches(text: string, searchTerm: string): MatchRange[] {
+	// An empty needle matches at every index; without this guard the loop
+	// below would produce one MatchRange per character of text instead of
+	// no matches. Belt-and-suspenders alongside the searchAll()-level check.
+	if (!searchTerm) return [];
+
 	const matches: MatchRange[] = [];
 	let index = 0;
 
@@ -250,7 +277,6 @@ function calculateScore(
 	titleMatches: MatchRange[],
 	contentMatches: MatchRange[],
 	title: string,
-	content: string,
 	lastModified?: Date
 ): number {
 	let score = 0;
@@ -325,13 +351,13 @@ function escapeHtml(text: string): string {
 }
 
 export function getFolderPath(folderId: string, allFolders: Folder[]): string {
-	const folder = allFolders.find(f => f.id === folderId);
+	const folder = allFolders.find((f) => f.id === folderId);
 	if (!folder) return '';
-	
+
 	if (folder.parentId === null) {
 		return folder.name;
 	}
-	
+
 	const parentPath = getFolderPath(folder.parentId, allFolders);
 	return `${parentPath} / ${folder.name}`;
 }

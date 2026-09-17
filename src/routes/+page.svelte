@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { get } from 'svelte/store';
-	import { subscribeFolders, subscribeNotes } from '$lib/firebase-service';
+	import { subscribeFolders, subscribeNotes, getAllNoteContents } from '$lib/firebase-service';
 	import {
 		sidebarCollapsed,
 		selectedNote,
 		notes,
+		noteContentCache,
 		folders,
 		sidebarWidth,
 		confirmModal,
+		inputModal,
 		exportModal,
 		importModal,
 		helpModal,
@@ -17,6 +19,7 @@
 		searchQuery
 	} from '$lib/stores';
 	import { createNote, createFolder, deleteNote } from '$lib/firebase-service';
+	import { openNote } from '$lib/note-selection';
 	import { initAuth, currentUser, authReady } from '$lib/auth';
 	import { clearAutoSaveState } from '$lib/auto-save';
 	import { shortcuts, matchesShortcut } from '$lib/keyboard-shortcuts';
@@ -28,6 +31,7 @@
 	import TabSlider from '$lib/components/TabSlider.svelte';
 	import HelpModal from '$lib/components/HelpModal.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
+	import InputModal from '$lib/components/InputModal.svelte';
 	import ExportModal from '$lib/components/ExportModal.svelte';
 	import ImportModal from '$lib/components/ImportModal.svelte';
 	import ErrorToast from '$lib/components/ErrorToast.svelte';
@@ -60,11 +64,35 @@
 		searchQuery.set('');
 		notes.set([]);
 		folders.set([]);
+		noteContentCache.set(new Map());
 
 		if (!userId) return;
 
 		unsubscribeFolders = subscribeFolders(userId);
 		unsubscribeNotes = subscribeNotes(userId);
+
+		// One-time background fetch, not a live listener — warms the content
+		// search cache without making note bodies part of the live list
+		// subscription (2.12). Fire-and-forget: search just has nothing to
+		// match against content-wise until this resolves, title search is
+		// unaffected, and opening a note fetches its own content regardless.
+		getAllNoteContents(userId)
+			.then((contents) => {
+				if (userId !== subscribedUserId) return; // user switched again meanwhile
+				noteContentCache.update((cache) => {
+					const merged = new Map(cache);
+					for (const [id, content] of contents) {
+						// Don't clobber an entry the open note's live listener
+						// (MainEditor's watchNoteContent) may have already set
+						// more recently than this one-time batch read.
+						if (!merged.has(id)) merged.set(id, content);
+					}
+					return merged;
+				});
+			})
+			.catch((error) => {
+				console.error('Failed to warm note content cache:', error);
+			});
 	}
 
 	onMount(() => {
@@ -94,15 +122,21 @@
 		unsubscribeAuth?.();
 	});
 
+	// Keeps $selectedNote's metadata (title, folderId, ...) in sync with the
+	// notes list — e.g. a rename from the sidebar should reflect immediately
+	// in the open editor's header. Content isn't part of NoteMeta any more
+	// (2.12): it's kept live by MainEditor's own subscription to the note's
+	// content doc, so merge the list's fresher metadata onto whatever content
+	// is already on screen rather than comparing/overwriting it here.
 	$: if ($selectedNote) {
 		const updatedNote = $notes.find((note) => note.id === $selectedNote.id);
 		if (
 			updatedNote &&
 			(updatedNote.title !== $selectedNote.title ||
-				updatedNote.content !== $selectedNote.content ||
+				updatedNote.folderId !== $selectedNote.folderId ||
 				updatedNote.updatedAt.getTime() !== $selectedNote.updatedAt.getTime())
 		) {
-			selectedNote.set(updatedNote);
+			selectedNote.set({ ...updatedNote, content: $selectedNote.content });
 		}
 	}
 
@@ -115,7 +149,7 @@
 					const checkForNote = () => {
 						const newNote = $notes.find((n) => n.id === noteId);
 						if (newNote) {
-							selectedNote.set(newNote);
+							openNote(newNote);
 							if (isMobile) {
 								sidebarCollapsed.set(true);
 							}
@@ -294,7 +328,7 @@
 		}
 
 		console.log('Navigating from index', currentIndex, 'to', newIndex);
-		selectedNote.set(availableNotes[newIndex]);
+		openNote(availableNotes[newIndex]);
 	}
 
 	function deleteCurrentNote() {
@@ -413,10 +447,35 @@
 	</div>
 
 	<!-- Global Components -->
+	<!-- Each modal is mounted exactly once, here, bound directly to its store
+	     field ($store.visible rather than a local mirror variable) so the
+	     component's own internal `visible = false` on close writes straight
+	     back to the store — no other component should mount these. -->
 	<HelpModal bind:visible={$helpModal.visible} on:close={() => helpModal.set({ visible: false })} />
-	<ConfirmModal />
-	<ExportModal />
-	<ImportModal />
+	<ConfirmModal
+		bind:visible={$confirmModal.visible}
+		title={$confirmModal.title}
+		message={$confirmModal.message}
+		confirmText="Delete"
+		type="danger"
+		on:confirm={() => $confirmModal.onConfirm?.()}
+		on:cancel={() => confirmModal.update((modal) => ({ ...modal, visible: false }))}
+	/>
+	<InputModal
+		bind:visible={$inputModal.visible}
+		title={$inputModal.title}
+		bind:value={$inputModal.value}
+		placeholder={$inputModal.placeholder}
+		on:confirm={(e) => $inputModal.onConfirm?.(e.detail)}
+		on:cancel={() => inputModal.update((modal) => ({ ...modal, visible: false }))}
+	/>
+	<ExportModal
+		bind:visible={$exportModal.visible}
+		exportType={$exportModal.type}
+		targetNote={$exportModal.targetNote}
+		targetFolder={$exportModal.targetFolder}
+	/>
+	<ImportModal bind:visible={$importModal.visible} />
 {/if}
 
 <ErrorToast />

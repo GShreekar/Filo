@@ -1,4 +1,4 @@
-export type { Folder, Note, SearchResult } from './types';
+export type { Folder, Note, NoteMeta, SearchResult } from './types';
 
 export {
 	folders,

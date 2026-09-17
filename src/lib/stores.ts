@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Folder, Note } from './types';
+import type { Folder, Note, NoteMeta } from './types';
 import type { CombinedSearchResult } from './search-service';
 
 export const sidebarCollapsed = writable(false);
@@ -11,7 +11,16 @@ export const currentView = writable<'editor' | 'preview' | 'split'>('split');
 export const editorSplitRatio = writable(0.5);
 
 export const folders = writable<Folder[]>([]);
-export const notes = writable<Note[]>([]);
+// Metadata only — see NoteMeta's doc comment. Use openNote() from
+// note-selection.ts to turn one of these into the full Note the editor needs.
+export const notes = writable<NoteMeta[]>([]);
+
+// In-memory cache of note bodies (id -> content), keyed by note id. Populated
+// by openNote() for whichever note is open, and by a one-time background
+// fetch (getAllNoteContents in firebase-service.ts) that warms the whole
+// cache after login so content search has something to search against
+// without every note's body being part of the live notes listener.
+export const noteContentCache = writable<Map<string, string>>(new Map());
 
 export const searchResults = writable<CombinedSearchResult[]>([]);
 export const selectedSearchIndex = writable(-1);
@@ -22,7 +31,7 @@ export const contextMenu = writable<{
 	x: number;
 	y: number;
 	type: 'folder' | 'note';
-	target?: Folder | Note;
+	target?: Folder | NoteMeta;
 }>({
 	visible: false,
 	x: 0,
@@ -57,7 +66,7 @@ export const inputModal = writable<{
 export const exportModal = writable<{
 	visible: boolean;
 	type: 'note' | 'folder' | 'workspace';
-	targetNote?: Note;
+	targetNote?: NoteMeta;
 	targetFolder?: Folder;
 }>({
 	visible: false,

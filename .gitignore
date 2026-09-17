@@ -43,3 +43,7 @@ docs/
 # to. Not a secret by itself, but kept out of a public repo on request.
 # Recreate it locally with `firebase use --add`.
 .firebaserc
+
+# Local backups of your actual note content (scripts/backup-notes.mjs) —
+# never belongs in a public repo.
+scripts/backups/

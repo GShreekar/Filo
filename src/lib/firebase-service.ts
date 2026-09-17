@@ -2,8 +2,10 @@ import {
 	collection,
 	doc,
 	addDoc,
+	setDoc,
 	updateDoc,
 	deleteDoc,
+	getDoc,
 	onSnapshot,
 	query,
 	orderBy,
@@ -14,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { requireUserId } from './auth';
-import type { Folder, Note } from './types';
+import type { Folder, Note, NoteMeta } from './types';
 import { folders, notes } from './stores';
 import { showError, isLoading, isSaving } from './error-store';
 
@@ -93,10 +95,11 @@ export async function deleteFolder(id: string): Promise<void> {
 			noteIds.push(...notesSnapshot.docs.map((noteDoc) => noteDoc.id));
 		}
 
-		// Notes first, then folders deepest-first, so a partial failure never
-		// leaves notes stranded under a folder that no longer exists.
+		// Notes and their content docs first, then folders deepest-first, so a
+		// partial failure never leaves notes stranded under a missing folder.
 		const deletions = [
 			...noteIds.map((noteId) => doc(db, 'notes', noteId)),
+			...noteIds.map((noteId) => doc(db, 'noteContents', noteId)),
 			...allFolderIds.reverse().map((folderId) => doc(db, 'folders', folderId))
 		];
 
@@ -126,16 +129,25 @@ export async function createNote(
 	try {
 		isLoading.set(true);
 		const ownerId = requireUserId();
-		const docRef = await addDoc(collection(db, 'notes'), {
+
+		// Metadata and content are separate docs (2.12) but must appear
+		// together, so write both in one batch under a pre-generated id
+		// rather than addDoc-then-setDoc, which could leave metadata without
+		// a content doc if the second write failed.
+		const noteRef = doc(collection(db, 'notes'));
+		const batch = writeBatch(db);
+		batch.set(noteRef, {
 			title,
-			content,
 			folderId: folderId || null,
 			ownerId,
 			createdAt: Timestamp.now(),
 			updatedAt: Timestamp.now()
 		});
+		batch.set(doc(db, 'noteContents', noteRef.id), { content, ownerId });
+		await batch.commit();
+
 		showError(`Note "${title}" created successfully`, 'success');
-		return docRef.id;
+		return noteRef.id;
 	} catch (error) {
 		console.error('Error creating note:', error);
 		showError('Failed to create note. Please try again.');
@@ -151,10 +163,27 @@ export async function updateNote(
 ): Promise<void> {
 	try {
 		isSaving.set(true);
-		await updateDoc(doc(db, 'notes', id), {
-			...updates,
-			updatedAt: Timestamp.now()
-		});
+		const ownerId = requireUserId();
+		const updatedAt = Timestamp.now();
+
+		const batch = writeBatch(db);
+		const metaUpdate: Record<string, unknown> = { updatedAt };
+		if (updates.title !== undefined) metaUpdate.title = updates.title;
+		batch.update(doc(db, 'notes', id), metaUpdate);
+
+		if (updates.content !== undefined) {
+			// set(..., {merge:true}) rather than update(): resilient to a note
+			// whose content doc doesn't exist yet (e.g. this one hasn't been
+			// through the metadata/content split migration).
+			batch.set(
+				doc(db, 'noteContents', id),
+				{ content: updates.content, ownerId },
+				{ merge: true }
+			);
+		}
+
+		await batch.commit();
+
 		if (updates.title) {
 			showError('Note updated successfully', 'success');
 		}
@@ -187,7 +216,10 @@ export async function moveNote(id: string, newFolderId: string | null): Promise<
 export async function deleteNote(id: string): Promise<void> {
 	try {
 		isLoading.set(true);
-		await deleteDoc(doc(db, 'notes', id));
+		const batch = writeBatch(db);
+		batch.delete(doc(db, 'notes', id));
+		batch.delete(doc(db, 'noteContents', id));
+		await batch.commit();
 		showError('Note deleted successfully', 'success');
 	} catch (error) {
 		console.error('Error deleting note:', error);
@@ -230,6 +262,9 @@ export function subscribeFolders(userId: string) {
 	}
 }
 
+// Metadata only — no content field is read here. This is what makes 2.12's
+// fix real: the list that powers the sidebar and title search no longer
+// carries every note's full body.
 export function subscribeNotes(userId: string) {
 	try {
 		const q = query(
@@ -241,10 +276,9 @@ export function subscribeNotes(userId: string) {
 		return onSnapshot(
 			q,
 			(snapshot) => {
-				const noteData: Note[] = snapshot.docs.map((doc) => ({
+				const noteData: NoteMeta[] = snapshot.docs.map((doc) => ({
 					id: doc.id,
 					title: doc.data().title,
-					content: doc.data().content,
 					folderId: doc.data().folderId,
 					ownerId: doc.data().ownerId,
 					createdAt: doc.data().createdAt?.toDate() ?? new Date(),
@@ -262,4 +296,45 @@ export function subscribeNotes(userId: string) {
 		showError('Failed to load notes. Please refresh the page.');
 		return () => {};
 	}
+}
+
+// Live content for exactly one note — used for whichever note is currently
+// open, swapped out as the selection changes (see MainEditor.svelte). Keeps
+// the same "content updates while open" behavior the app had before the
+// metadata/content split, without every note's body being part of the list
+// listener.
+export function subscribeNoteContent(noteId: string, onContent: (content: string) => void) {
+	return onSnapshot(
+		doc(db, 'noteContents', noteId),
+		(snapshot) => {
+			onContent(snapshot.exists() ? (snapshot.data().content ?? '') : '');
+		},
+		(error) => {
+			console.error('Error listening to note content:', error);
+			showError('Lost connection to this note. Please reopen it.');
+		}
+	);
+}
+
+// One-time fetch of a single note's content — for export, where a live
+// subscription isn't needed.
+export async function getNoteContent(noteId: string): Promise<string> {
+	const snapshot = await getDoc(doc(db, 'noteContents', noteId));
+	return snapshot.exists() ? (snapshot.data().content ?? '') : '';
+}
+
+// One-time batched fetch of every note's content for this user, used to warm
+// the client-side search cache (noteContentCache in stores.ts) after login,
+// and to fetch bodies in bulk for folder/workspace export. Not a live
+// listener — the cache can go briefly stale if a note is edited elsewhere
+// and not reopened; acceptable for a single-user app, cheaper than mirroring
+// the old "sync everything live" behaviour this fix removes.
+export async function getAllNoteContents(userId: string): Promise<Map<string, string>> {
+	const q = query(collection(db, 'noteContents'), where('ownerId', '==', userId));
+	const snapshot = await getDocs(q);
+	const result = new Map<string, string>();
+	for (const docSnap of snapshot.docs) {
+		result.set(docSnap.id, docSnap.data().content ?? '');
+	}
+	return result;
 }

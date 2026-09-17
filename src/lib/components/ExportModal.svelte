@@ -6,12 +6,12 @@
 		exportWorkspace,
 		type ExportFormat
 	} from '$lib/export-import-service';
-	import type { Note, Folder } from '$lib/types';
+	import type { NoteMeta, Folder } from '$lib/types';
 	import { folders, notes } from '$lib/stores';
 
 	export let visible = false;
 	export let exportType: 'note' | 'folder' | 'workspace' = 'note';
-	export let targetNote: Note | null = null;
+	export let targetNote: NoteMeta | null = null;
 	export let targetFolder: Folder | null = null;
 
 	let selectedFormat: ExportFormat = 'markdown';

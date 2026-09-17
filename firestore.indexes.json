@@ -19,7 +19,7 @@
 	],
 	"fieldOverrides": [
 		{
-			"collectionGroup": "notes",
+			"collectionGroup": "noteContents",
 			"fieldPath": "content",
 			"indexes": []
 		}

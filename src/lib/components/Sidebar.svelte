@@ -22,20 +22,20 @@
 		updateNote,
 		moveNote
 	} from '$lib/firebase-service';
-	import { searchAll, highlightText, formatTimeAgo } from '$lib/search-service';
+	import { highlightText, formatTimeAgo } from '$lib/search-service';
+	import { openNote } from '$lib/note-selection';
 	import { showError } from '$lib/error-store';
 	import { tick, onMount } from 'svelte';
 	import { Folder, FolderOpen, FileText, Plus, Search, MoreVertical } from 'lucide-svelte';
 	import ContextMenu from './ContextMenu.svelte';
-	import ConfirmModal from './ConfirmModal.svelte';
-	import InputModal from './InputModal.svelte';
 	import EmptyState from './EmptyState.svelte';
-	import type { Note, Folder as FolderType } from '$lib/types';
+	import type { NoteMeta, Folder as FolderType } from '$lib/types';
 
-	$: {
-		const results = searchAll($searchQuery);
-		searchResults.set(results);
-	}
+	// searchResults itself is computed once, debounced, in TopBar.svelte —
+	// both search boxes share the same searchQuery/searchResults stores, so
+	// this component only needs to read the result, not recompute it. A
+	// second, undebounced computation here used to run a full-corpus scan on
+	// every keystroke and race with TopBar's write to the same store.
 	$: isSearching = $searchQuery.trim().length > 0;
 
 	$: {
@@ -67,15 +67,9 @@
 		contextMenu.update((menu) => ({ ...menu, visible: contextMenuVisible }));
 	}
 
-	let confirmModalVisible = false;
-	let inputModalVisible = false;
-
 	let draggedNoteId: string | null = null;
 	let dragOverFolderId: string | null = null;
 	let dragOverStandalone = false;
-
-	$: confirmModalVisible = $confirmModal.visible;
-	$: inputModalVisible = $inputModal.visible;
 
 	onMount(() => {
 		const checkMobile = () => {
@@ -95,8 +89,8 @@
 		expandedFolders = expandedFolders;
 	}
 
-	function selectNote(note: Note) {
-		selectedNote.set(note);
+	function selectNote(note: NoteMeta) {
+		openNote(note);
 		const folder = $folders.find((f) => f.id === note.folderId);
 		selectedFolder.set(folder?.id || null);
 
@@ -217,7 +211,7 @@
 				if (type === 'folder') {
 					showRenameModal('renameFolder', target.id, (target as FolderType).name);
 				} else {
-					showRenameModal('renameNote', target.id, (target as Note).title);
+					showRenameModal('renameNote', target.id, (target as NoteMeta).title);
 				}
 				break;
 			case 'export':
@@ -231,7 +225,7 @@
 					exportModal.set({
 						visible: true,
 						type: 'note',
-						targetNote: target as Note
+						targetNote: target as NoteMeta
 					});
 				}
 				break;
@@ -239,7 +233,7 @@
 				if (type === 'folder') {
 					showDeleteConfirm('deleteFolder', target.id, (target as FolderType).name);
 				} else {
-					showDeleteConfirm('deleteNote', target.id, (target as Note).title);
+					showDeleteConfirm('deleteNote', target.id, (target as NoteMeta).title);
 				}
 				break;
 		}
@@ -307,7 +301,7 @@
 			const checkForNote = () => {
 				const newNote = $notes.find((n) => n.id === noteId);
 				if (newNote) {
-					selectedNote.set(newNote);
+					openNote(newNote);
 					expandedFolders.add(folderId);
 					expandedFolders = expandedFolders;
 				} else {
@@ -328,7 +322,7 @@
 			const checkForNote = () => {
 				const newNote = $notes.find((n) => n.id === noteId);
 				if (newNote) {
-					selectedNote.set(newNote);
+					openNote(newNote);
 				} else {
 					setTimeout(checkForNote, 100);
 				}
@@ -347,24 +341,26 @@
 			acc[folder.id] = $notes.filter((note) => note.folderId === folder.id);
 			return acc;
 		},
-		{} as Record<string, Note[]>
+		{} as Record<string, NoteMeta[]>
 	);
 
 	$: rootFolders = $folders.filter((folder) => folder.parentId === null);
-	
+
 	function getSubfolders(parentId: string): FolderType[] {
 		return $folders.filter((folder) => folder.parentId === parentId);
 	}
 
-	function getNotesInFolder(folderId: string): Note[] {
+	function getNotesInFolder(folderId: string): NoteMeta[] {
 		return $notes.filter((note) => note.folderId === folderId);
 	}
 
 	function getTotalNotesInFolderTree(folderId: string): number {
 		const directNotes = getNotesInFolder(folderId).length;
 		const subfolders = getSubfolders(folderId);
-		const subfolderNotes = subfolders.reduce((total, subfolder) => 
-			total + getTotalNotesInFolderTree(subfolder.id), 0);
+		const subfolderNotes = subfolders.reduce(
+			(total, subfolder) => total + getTotalNotesInFolderTree(subfolder.id),
+			0
+		);
 		return directNotes + subfolderNotes;
 	}
 
@@ -706,7 +702,9 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100'}"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.noteResult && showSearchContextMenu(e, 'note', result.noteResult.note);
@@ -746,7 +744,9 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100'}"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.folderResult &&
@@ -833,7 +833,9 @@
 								</button>
 								<!-- Context menu trigger button -->
 								<button
-									class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+									class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+										? 'opacity-100'
+										: 'opacity-0 group-hover:opacity-100'}"
 									on:click={(e) => {
 										e.stopPropagation();
 										showContextMenu(e, 'note', note.id, note.title);
@@ -888,25 +890,8 @@
 	on:action={handleContextAction}
 />
 
-<!-- Confirm Modal -->
-<ConfirmModal
-	bind:visible={confirmModalVisible}
-	title={$confirmModal.title}
-	message={$confirmModal.message}
-	confirmText="Delete"
-	type="danger"
-	on:confirm={(e) => $confirmModal.onConfirm?.()}
-/>
-
-<!-- Input Modal -->
-<InputModal
-	bind:visible={inputModalVisible}
-	title={$inputModal.title}
-	bind:value={$inputModal.value}
-	placeholder={$inputModal.placeholder}
-	on:confirm={(e) => $inputModal.onConfirm?.(e.detail)}
-	on:cancel={() => inputModal.update((modal) => ({ ...modal, visible: false }))}
-/>
+<!-- ConfirmModal/InputModal are mounted once, in +page.svelte, and driven
+     entirely by these same stores — nothing to render here. -->
 
 <!-- Search Context Menu - positioned at document level with high z-index -->
 {#if searchContextMenuVisible}
@@ -949,17 +934,21 @@
 				<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
 					{folder.name}
 				</span>
-				
+
 				<!-- Show notes count -->
 				{#if getTotalNotesInFolderTree(folder.id) > 0}
-					<span class="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+					<span
+						class="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+					>
 						{getTotalNotesInFolderTree(folder.id)}
 					</span>
 				{/if}
 			</button>
 			<!-- Context menu trigger button -->
 			<button
-				class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+				class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+					? 'opacity-100'
+					: 'opacity-0 group-hover:opacity-100'}"
 				on:click={(e) => {
 					e.stopPropagation();
 					showContextMenu(e, 'folder', folder.id, folder.name);
@@ -1030,7 +1019,9 @@
 						</button>
 						<!-- Context menu trigger button -->
 						<button
-							class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+							class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+								? 'opacity-100'
+								: 'opacity-0 group-hover:opacity-100'}"
 							on:click={(e) => {
 								e.stopPropagation();
 								showContextMenu(e, 'note', note.id, note.title);
