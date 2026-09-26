@@ -89,6 +89,30 @@
 		expandedFolders = expandedFolders;
 	}
 
+	// Selecting a folder from search (TopBar) — or a note, which also sets
+	// selectedFolder to its parent below — used to have nothing visible
+	// happen in the sidebar. Walking up the parent chain makes a nested
+	// folder's ancestors expand so it's actually reachable in the tree.
+	$: if ($selectedFolder) {
+		expandAncestorsOf($selectedFolder);
+	}
+
+	function expandAncestorsOf(folderId: string) {
+		let current = $folders.find((f) => f.id === folderId);
+		let changed = false;
+		while (current) {
+			if (!expandedFolders.has(current.id)) {
+				expandedFolders.add(current.id);
+				changed = true;
+			}
+			const parentId: string | null = current.parentId;
+			current = parentId ? $folders.find((f) => f.id === parentId) : undefined;
+		}
+		if (changed) {
+			expandedFolders = expandedFolders;
+		}
+	}
+
 	function selectNote(note: NoteMeta) {
 		openNote(note);
 		const folder = $folders.find((f) => f.id === note.folderId);
@@ -911,9 +935,11 @@
 	<div class="mb-2" style="margin-left: {depth * 16}px">
 		<!-- Folder Header -->
 		<div
-			class="group relative flex items-center justify-between"
+			class="group relative flex items-center justify-between rounded-lg"
 			class:bg-blue-50={dragOverFolderId === folder.id}
 			class:dark:bg-blue-900={dragOverFolderId === folder.id}
+			class:ring-2={$selectedFolder === folder.id}
+			class:ring-blue-500={$selectedFolder === folder.id}
 			role="menuitem"
 			tabindex="-1"
 			on:contextmenu={(e) => showContextMenu(e, 'folder', folder.id, folder.name)}

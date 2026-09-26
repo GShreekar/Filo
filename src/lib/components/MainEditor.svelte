@@ -186,8 +186,16 @@
 		editingTitle = '';
 	}
 
+	// Guards against Enter and blur both landing on the same rename: Enter
+	// calls saveTitle() directly, and finishing it removes the (now unmounted)
+	// input from the DOM, which fires a native blur — handleTitleBlur's own
+	// 100ms timer used to be the only thing standing between that and a second
+	// concurrent saveTitle() call while the first was still awaiting Firestore.
+	let isSavingTitle = false;
+
 	async function saveTitle() {
-		console.log('Saving title:', editingTitle, 'Original:', $selectedNote?.title);
+		if (isSavingTitle) return;
+
 		if ($selectedNote && editingTitle.trim() && editingTitle.trim() !== $selectedNote.title) {
 			const newTitle = editingTitle.trim();
 
@@ -199,7 +207,6 @@
 			);
 
 			if (duplicateNote) {
-				console.log('Duplicate title found in same folder');
 				showError(
 					'This title already exists in this folder. Please choose a different name.',
 					'warning'
@@ -213,30 +220,25 @@
 				return;
 			}
 
+			isSavingTitle = true;
 			try {
 				scheduleTitleSave($selectedNote.id, newTitle);
 				await saveCurrentNote($selectedNote.id, content);
 				isEditingTitle = false;
 				editingTitle = '';
-				console.log('Title saved successfully');
 			} catch (error) {
 				console.error('Failed to update note title:', error);
+			} finally {
+				isSavingTitle = false;
 			}
 		} else {
-			console.log('No changes, canceling edit');
 			cancelEditingTitle();
-		}
-	}
-
-	function handleTitleInput() {
-		if ($selectedNote && editingTitle.trim()) {
-			scheduleTitleSave($selectedNote.id, editingTitle.trim());
 		}
 	}
 
 	function handleTitleBlur() {
 		setTimeout(() => {
-			if (isEditingTitle) {
+			if (isEditingTitle && !isSavingTitle) {
 				saveTitle();
 			}
 		}, 100);
@@ -303,7 +305,6 @@
 					<input
 						bind:this={titleInputElement}
 						bind:value={editingTitle}
-						on:input={handleTitleInput}
 						on:keydown={handleTitleKeydown}
 						on:blur={handleTitleBlur}
 						class="title-input w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm font-medium text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"

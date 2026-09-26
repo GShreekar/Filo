@@ -777,7 +777,9 @@ br + .katex-display {
 }
 
 .tab-slider-transition {
-	transition: width 0.2s ease, height 0.2s ease;
+	transition:
+		width 0.2s ease,
+		height 0.2s ease;
 }
 
 .tab-slider-hover-zone {
@@ -796,7 +798,9 @@ br + .katex-display {
 }
 
 .resize-transition {
-	transition: width 0.1s ease-out, height 0.1s ease-out;
+	transition:
+		width 0.1s ease-out,
+		height 0.1s ease-out;
 }
 
 .no-select {

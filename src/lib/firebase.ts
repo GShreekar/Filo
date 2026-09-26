@@ -23,7 +23,11 @@ export const googleProvider = new GoogleAuthProvider();
 // Skips the account chooser when only one account has ever been used here.
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-if (import.meta.env.DEV) {
+// Opt-in, not automatic: connecting unconditionally in dev meant PDF export
+// was broken under `npm run dev` unless the emulator happened to already be
+// running. Without this flag, dev talks to the real deployed function, same
+// as production.
+if (import.meta.env.DEV && import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === 'true') {
 	try {
 		connectFunctionsEmulator(functions, 'localhost', 5001);
 	} catch (error) {

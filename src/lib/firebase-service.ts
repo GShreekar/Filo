@@ -14,6 +14,7 @@ import {
 	getDocs,
 	writeBatch
 } from 'firebase/firestore';
+import { get } from 'svelte/store';
 import { db } from './firebase';
 import { requireUserId } from './auth';
 import type { Folder, Note, NoteMeta } from './types';
@@ -121,6 +122,26 @@ export async function deleteFolder(id: string): Promise<void> {
 	}
 }
 
+// Rename already refuses to create a duplicate title within a folder (see
+// updateNote's callers in MainEditor/Sidebar); create had no equivalent
+// check, so every "New Note" click piled up same-named notes that you were
+// then stuck with (renaming *away* from the duplicate is fine, there's just
+// no way to end up with two of them again). This makes create respect the
+// same invariant by finding the next free "title", "title 2", "title 3", ...
+function uniqueNoteTitle(folderId: string | null, baseTitle: string): string {
+	const siblingTitles = new Set(
+		get(notes)
+			.filter((n) => (n.folderId || null) === (folderId || null))
+			.map((n) => n.title)
+	);
+
+	if (!siblingTitles.has(baseTitle)) return baseTitle;
+
+	let suffix = 2;
+	while (siblingTitles.has(`${baseTitle} ${suffix}`)) suffix++;
+	return `${baseTitle} ${suffix}`;
+}
+
 export async function createNote(
 	folderId: string | null,
 	title: string,
@@ -129,6 +150,7 @@ export async function createNote(
 	try {
 		isLoading.set(true);
 		const ownerId = requireUserId();
+		const uniqueTitle = uniqueNoteTitle(folderId, title);
 
 		// Metadata and content are separate docs (2.12) but must appear
 		// together, so write both in one batch under a pre-generated id
@@ -137,7 +159,7 @@ export async function createNote(
 		const noteRef = doc(collection(db, 'notes'));
 		const batch = writeBatch(db);
 		batch.set(noteRef, {
-			title,
+			title: uniqueTitle,
 			folderId: folderId || null,
 			ownerId,
 			createdAt: Timestamp.now(),
@@ -146,7 +168,7 @@ export async function createNote(
 		batch.set(doc(db, 'noteContents', noteRef.id), { content, ownerId });
 		await batch.commit();
 
-		showError(`Note "${title}" created successfully`, 'success');
+		showError(`Note "${uniqueTitle}" created successfully`, 'success');
 		return noteRef.id;
 	} catch (error) {
 		console.error('Error creating note:', error);

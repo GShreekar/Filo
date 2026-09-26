@@ -48,6 +48,7 @@
 				await exportFolder(
 					targetFolder,
 					$notes,
+					$folders,
 					selectedFormat,
 					(completed, total, currentItem) => {
 						exportProgress = { completed, total, currentItem };

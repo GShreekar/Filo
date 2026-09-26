@@ -11,29 +11,30 @@
 
 	let contextMenu: HTMLDivElement;
 
+	// Positioned entirely through these two reactive values, applied once in
+	// the template below. The previous version also wrote contextMenu.style
+	// directly from this same block — since the template's own
+	// `style="left:{x}px..."` binding re-applies on every re-render too, the
+	// two writers raced and the declarative one routinely undid the clamp.
+	let adjustedX = x;
+	let adjustedY = y;
+
 	$: if (visible && contextMenu) {
 		const rect = contextMenu.getBoundingClientRect();
 		const viewportWidth = window.innerWidth;
 		const viewportHeight = window.innerHeight;
 
-		let adjustedX = x;
-		let adjustedY = y;
-
-		if (x + rect.width > viewportWidth) {
-			adjustedX = x - rect.width;
-		}
-
-		if (y + rect.height > viewportHeight) {
-			adjustedY = y - rect.height;
-		}
-
-		contextMenu.style.left = `${adjustedX}px`;
-		contextMenu.style.top = `${adjustedY}px`;
+		adjustedX = x + rect.width > viewportWidth ? Math.max(0, x - rect.width) : x;
+		adjustedY = y + rect.height > viewportHeight ? Math.max(0, y - rect.height) : y;
+	} else {
+		adjustedX = x;
+		adjustedY = y;
 	}
 
 	function handleClickOutside(event: MouseEvent) {
 		if (contextMenu && !contextMenu.contains(event.target as Node)) {
 			visible = false;
+			dispatch('close');
 		}
 	}
 
@@ -57,7 +58,7 @@
 	<div
 		bind:this={contextMenu}
 		class="pointer-events-auto fixed z-50 min-w-[160px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
-		style="left: {x}px; top: {y}px;"
+		style="left: {adjustedX}px; top: {adjustedY}px;"
 	>
 		{#if type === 'folder'}
 			<button

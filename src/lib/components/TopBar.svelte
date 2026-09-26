@@ -18,6 +18,7 @@
 		selectedSearchIndex,
 		showSearchResults,
 		notes,
+		selectedFolder,
 		inputModal,
 		exportModal,
 		importModal,
@@ -145,20 +146,26 @@
 	}
 
 	function selectSearchResult(result: any, index: number) {
+		// Folder results arrive through the separate 'selectFolder' event
+		// below, not through this one — SearchResults.svelte only ever
+		// dispatches 'select' for notes.
 		if (result.type === 'note' && result.noteResult) {
 			openNote(result.noteResult.note);
 			if (typeof window !== 'undefined' && window.innerWidth < 768) {
 				sidebarCollapsed.set(true);
 			}
-		} else if (result.type === 'folder' && result.folderResult) {
-			console.log('Selected folder:', result.folderResult.folder.name);
 		}
 		showSearchResults.set(false);
 		searchInput?.blur();
 	}
 
 	function selectFolder(folder: any, index: number) {
-		console.log('Selected folder:', folder.name);
+		// Sidebar reacts to selectedFolder by expanding this folder's
+		// ancestor chain and highlighting it, so it's actually visible in
+		// the tree rather than just closing the dropdown with nothing to
+		// show for it.
+		selectedFolder.set(folder.id);
+		sidebarCollapsed.set(false);
 		showSearchResults.set(false);
 		searchInput?.blur();
 	}

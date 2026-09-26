@@ -21,7 +21,7 @@
 	import { createNote, createFolder, deleteNote } from '$lib/firebase-service';
 	import { openNote } from '$lib/note-selection';
 	import { initAuth, currentUser, authReady } from '$lib/auth';
-	import { clearAutoSaveState } from '$lib/auto-save';
+	import { clearAutoSaveState, saveCurrentNoteIfDirty } from '$lib/auto-save';
 	import { shortcuts, matchesShortcut } from '$lib/keyboard-shortcuts';
 	import SignIn from '$lib/components/SignIn.svelte';
 	import LoadingSpinner from '$lib/components/LoadingSpinner.svelte';
@@ -168,7 +168,11 @@
 				break;
 			case 'save':
 				if ($selectedNote) {
-					console.log('Note auto-saved');
+					// Auto-save already debounces every keystroke; Ctrl+S just
+					// flushes whatever's pending right now instead of waiting.
+					saveCurrentNoteIfDirty($selectedNote.id).catch((error) => {
+						console.error('Failed to save note:', error);
+					});
 				}
 				break;
 			case 'search':

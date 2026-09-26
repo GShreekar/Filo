@@ -43,10 +43,10 @@ export const shortcuts: KeyboardShortcut[] = [
 	{ key: '3', ctrlKey: true, altKey: true, action: 'view-preview', description: 'Preview only' },
 
 	{ key: '\\', ctrlKey: true, action: 'toggle-sidebar', description: 'Toggle sidebar' },
-	
+
 	{ key: 'ArrowLeft', altKey: true, action: 'previous-note', description: 'Previous note' },
 	{ key: 'ArrowRight', altKey: true, action: 'next-note', description: 'Next note' },
-	
+
 	{ key: 'Delete', altKey: true, action: 'delete-note', description: 'Delete note' },
 	{ key: 'r', altKey: true, action: 'rename-note', description: 'Rename note' },
 	{ key: 'e', altKey: true, action: 'export-note', description: 'Export note' },
@@ -54,18 +54,26 @@ export const shortcuts: KeyboardShortcut[] = [
 	{ key: 'h', altKey: true, action: 'show-help', description: 'Show help' }
 ];
 
+// Every shortcut is authored with ctrlKey — treated here as "the platform's
+// primary modifier": Ctrl on Windows/Linux, Cmd (metaKey) on Mac. Without this,
+// Cmd+anything never matched on Mac, since event.metaKey and event.ctrlKey are
+// genuinely different keys there — despite the help modal correctly showing
+// "⌘" for these shortcuts, pressing it did nothing. Checked fresh each call,
+// same as getShortcutDescription() below already does, rather than cached —
+// navigator.platform can't change mid-session, so this costs nothing.
+function isMacPlatform(): boolean {
+	return typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
+}
+
 export function matchesShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut): boolean {
-	const ctrlOrMeta = (event.ctrlKey && !!shortcut.ctrlKey) || (event.metaKey && !!shortcut.metaKey);
-	const matchesModifiers = 
-		(!!shortcut.ctrlKey || !!shortcut.metaKey) ? ctrlOrMeta : true;
+	const primaryModifierPressed = isMacPlatform() ? event.metaKey : event.ctrlKey;
+	const primaryModifierExpected = !!shortcut.ctrlKey;
 
 	return (
 		event.key.toLowerCase() === shortcut.key.toLowerCase() &&
-		matchesModifiers &&
+		primaryModifierPressed === primaryModifierExpected &&
 		!!event.shiftKey === !!shortcut.shiftKey &&
-		!!event.altKey === !!shortcut.altKey &&
-		!!event.ctrlKey === !!shortcut.ctrlKey &&
-		!!event.metaKey === !!shortcut.metaKey
+		!!event.altKey === !!shortcut.altKey
 	);
 }
 

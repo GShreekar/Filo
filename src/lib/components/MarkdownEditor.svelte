@@ -57,6 +57,49 @@
 		editorView.focus();
 	}
 
+	// wrapSelection() leaves the wrapped text selected so the caller can chain
+	// another edit onto it; a plain insertText() call right after it would
+	// therefore replace that selection instead of appending after it. This
+	// builds the marker and definition as one insertion instead, so the
+	// footnote number can't end up overwritten by its own definition text.
+	function insertFootnote() {
+		if (!editorView) return;
+
+		const footnoteNum = Math.floor(Math.random() * 1000) + 1;
+		const selection = editorView.state.selection.main;
+		const selectedText = editorView.state.doc.sliceString(selection.from, selection.to);
+		const marker = `[^${footnoteNum}]`;
+		const definition = `\n\n[^${footnoteNum}]: Add your footnote content here`;
+		const insertion = selectedText + marker + definition;
+
+		const transaction = editorView.state.update({
+			changes: { from: selection.from, to: selection.to, insert: insertion },
+			selection: { anchor: selection.from + selectedText.length + marker.length }
+		});
+
+		editorView.dispatch(transaction);
+		editorView.focus();
+	}
+
+	// Subscript uses a single ~, the same character strikethrough pairs up as
+	// ~~. Two subscripts placed back-to-back via this button (e.g. select "a",
+	// subscript, select the following "b", subscript again) would otherwise
+	// land as `~a~~b~`, which markdown-it reads as strikethrough kicking in
+	// partway through. A zero-width space only where that adjacency would
+	// actually occur breaks the ambiguity without affecting normal use.
+	function wrapSelectionSubscript() {
+		if (!editorView) return;
+
+		const selection = editorView.state.selection.main;
+		const doc = editorView.state.doc;
+		const charBefore =
+			selection.from > 0 ? doc.sliceString(selection.from - 1, selection.from) : '';
+		const charAfter =
+			selection.to < doc.length ? doc.sliceString(selection.to, selection.to + 1) : '';
+
+		wrapSelection(charBefore === '~' ? '​~' : '~', charAfter === '~' ? '~​' : '~');
+	}
+
 	function handleToolbarAction(action: string) {
 		switch (action) {
 			case 'bold':
@@ -102,7 +145,7 @@
 				insertText('\n---\n');
 				break;
 			case 'code-block':
-				insertText('\n```javascript\n', -14);
+				wrapSelection('\n```javascript\n', '\n```\n');
 				break;
 			case 'table':
 				insertText(
@@ -110,18 +153,16 @@
 				);
 				break;
 			case 'footnote':
-				const footnoteNum = Math.floor(Math.random() * 1000) + 1;
-				wrapSelection(`[^${footnoteNum}`, ']');
-				insertText(`\n\n[^${footnoteNum}]: Add your footnote content here`);
+				insertFootnote();
 				break;
 			case 'math-inline':
 				wrapSelection('$', '$');
 				break;
 			case 'math-block':
-				insertText('\n$$\n', -3);
+				wrapSelection('\n$$\n', '\n$$\n');
 				break;
 			case 'subscript':
-				wrapSelection('~', '~');
+				wrapSelectionSubscript();
 				break;
 			case 'superscript':
 				wrapSelection('^', '^');
@@ -137,14 +178,15 @@
 			try {
 				const selection = view.state.selection.main;
 				const domPos = view.domAtPos(selection.head);
-				
+
 				if (domPos.node) {
-					const element = domPos.node.nodeType === Node.ELEMENT_NODE 
-						? domPos.node as Element
-						: domPos.node.parentElement;
-					
+					const element =
+						domPos.node.nodeType === Node.ELEMENT_NODE
+							? (domPos.node as Element)
+							: domPos.node.parentElement;
+
 					if (element) {
-						element.scrollIntoView({ 
+						element.scrollIntoView({
 							block: 'nearest',
 							behavior: 'smooth'
 						});
@@ -273,14 +315,14 @@
 			{
 				key: 'Ctrl-Shift-e',
 				run: () => {
-					insertText('\n```javascript\n', -14);
+					wrapSelection('\n```javascript\n', '\n```\n');
 					return true;
 				}
 			},
 			{
 				key: 'Cmd-Shift-e',
 				run: () => {
-					insertText('\n```javascript\n', -14);
+					wrapSelection('\n```javascript\n', '\n```\n');
 					return true;
 				}
 			},
@@ -412,22 +454,43 @@
 			}
 		]);
 
+		// Toggles/replaces rather than always prepending — otherwise pressing a
+		// heading shortcut repeatedly stacked markers ("# # # text"). Headings
+		// and list markers are treated as separate families: applying a
+		// heading only ever replaces another heading on that line, same for
+		// list markers, so this never mixes the two.
 		function insertLinePrefix(prefix: string) {
 			if (!editorView) return;
 
 			const selection = editorView.state.selection.main;
 			const line = editorView.state.doc.lineAt(selection.from);
-			const lineStart = line.from;
-			
+			const lineText = line.text;
+
+			const isHeading = /^#{1,6} $/.test(prefix);
+			const existingMatch = isHeading
+				? lineText.match(/^#{1,6} /)
+				: lineText.match(/^(?:-|\d+\.) /);
+			const existingPrefix = existingMatch ? existingMatch[0] : null;
+
+			let newLineText: string;
+			let cursorDelta: number;
+
+			if (existingPrefix === prefix) {
+				newLineText = lineText.slice(existingPrefix.length);
+				cursorDelta = -existingPrefix.length;
+			} else if (existingPrefix) {
+				newLineText = prefix + lineText.slice(existingPrefix.length);
+				cursorDelta = prefix.length - existingPrefix.length;
+			} else {
+				newLineText = prefix + lineText;
+				cursorDelta = prefix.length;
+			}
+
 			const transaction = editorView.state.update({
-				changes: {
-					from: lineStart,
-					to: lineStart,
-					insert: prefix
-				},
+				changes: { from: line.from, to: line.to, insert: newLineText },
 				selection: {
-					anchor: selection.from + prefix.length,
-					head: selection.to + prefix.length
+					anchor: Math.max(line.from, selection.from + cursorDelta),
+					head: Math.max(line.from, selection.to + cursorDelta)
 				}
 			});
 

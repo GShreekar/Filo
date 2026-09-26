@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, afterUpdate } from 'svelte';
+	import { onMount } from 'svelte';
 	import { renderMarkdown } from '$lib/markdown-renderer';
 
 	export let content: string = '';
@@ -24,7 +24,11 @@
 		event.preventDefault();
 
 		const targetId = href.slice(1);
-		const targetElement = containerRef.querySelector(`#${targetId}`);
+		// targetId comes from note content — CSS.escape() keeps an id like
+		// "1a" (or one with `:`/`.`/other selector-special characters, as
+		// markdown-it-attrs custom anchors can produce) from being read as
+		// invalid selector syntax and throwing.
+		const targetElement = containerRef.querySelector(`#${CSS.escape(targetId)}`);
 
 		if (targetElement) {
 			const containerRect = containerRef.getBoundingClientRect();
@@ -48,21 +52,16 @@
 
 	onMount(() => {
 		mounted = true;
-	});
 
-	afterUpdate(() => {
-		if (containerRef && mounted) {
-			const footnoteLinks = containerRef.querySelectorAll('a[href^="#fn"], a[href^="#fnref"]');
-			footnoteLinks.forEach((link) => {
-				link.addEventListener('click', handleFootnoteClick);
-			});
-
-			return () => {
-				footnoteLinks.forEach((link) => {
-					link.removeEventListener('click', handleFootnoteClick);
-				});
-			};
-		}
+		// One delegated listener on the container, which afterUpdate never
+		// replaces, rather than re-querying and re-attaching to every footnote
+		// link each time {@html} replaces the rendered content — afterUpdate's
+		// return value isn't used for cleanup by Svelte (only onMount's is),
+		// so the old per-link listeners were never actually removed.
+		containerRef.addEventListener('click', handleFootnoteClick);
+		return () => {
+			containerRef.removeEventListener('click', handleFootnoteClick);
+		};
 	});
 </script>
 

@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { showError } from '$lib/error-store';
-	import { importMarkdownFiles } from '$lib/export-import-service';
+	import { importFiles } from '$lib/export-import-service';
 	import type { ImportResult } from '$lib/export-import-service';
-	import { createNote } from '$lib/firebase-service';
+	import { createNote, createFolder } from '$lib/firebase-service';
+	import { selectedFolder } from '$lib/stores';
 	import { Download, FileText, Archive, X, CheckCircle, AlertCircle } from 'lucide-svelte';
 
 	export let visible = false;
@@ -30,7 +31,10 @@
 		importResult = null;
 
 		try {
-			const result = await importMarkdownFiles(files, null, createNote);
+			// Import into whatever folder is currently in view rather than
+			// always the root — $selectedFolder already tracks that (set on
+			// note/folder selection).
+			const result = await importFiles(files, $selectedFolder, createNote, createFolder);
 			importResult = result;
 		} catch (error) {
 			importResult = {
@@ -48,6 +52,10 @@
 		if (target.files) {
 			handleFiles(target.files);
 		}
+		// Without this, selecting the exact same file again fires no 'change'
+		// event at all (the input's value hasn't changed), so re-importing
+		// after fixing something in the same file silently did nothing.
+		target.value = '';
 	}
 
 	function handleDrop(event: DragEvent) {

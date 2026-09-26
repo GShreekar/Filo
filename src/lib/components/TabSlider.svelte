@@ -14,6 +14,13 @@
 	let startPosition = 0;
 	let startSize = initialSize;
 	let currentSize = initialSize;
+	let lastDispatchedSize = initialSize;
+
+	function reportResize(newSize: number) {
+		currentSize = newSize;
+		lastDispatchedSize = newSize;
+		dispatch('resize', { size: newSize });
+	}
 
 	function handleMouseDown(event: MouseEvent) {
 		if (disabled) return;
@@ -36,8 +43,7 @@
 			const newSize = Math.max(minSize, Math.min(maxSize, startSize + delta));
 
 			if (newSize !== currentSize) {
-				currentSize = newSize;
-				dispatch('resize', { size: newSize });
+				reportResize(newSize);
 			}
 		}
 
@@ -77,8 +83,7 @@
 			const newSize = Math.max(minSize, Math.min(maxSize, startSize + delta));
 
 			if (newSize !== currentSize) {
-				currentSize = newSize;
-				dispatch('resize', { size: newSize });
+				reportResize(newSize);
 			}
 		}
 
@@ -94,7 +99,15 @@
 		document.addEventListener('touchend', handleTouchEnd);
 	}
 
-	$: currentSize = initialSize;
+	// Only re-sync from the prop when it changes for a reason other than us
+	// having just dispatched that exact value ourselves — otherwise a parent
+	// that derives initialSize from the last 'resize' event (as MainEditor
+	// does, from editorSplitRatio) echoes our own drag back down and fights
+	// handleMouseMove's own currentSize updates mid-drag.
+	$: if (initialSize !== lastDispatchedSize) {
+		currentSize = initialSize;
+		lastDispatchedSize = initialSize;
+	}
 </script>
 
 <div
@@ -113,19 +126,18 @@
 	tabindex={disabled ? -1 : 0}
 	on:keydown={(e) => {
 		if (disabled) return;
-		
+
 		let delta = 0;
 		if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
 			delta = -10;
 		} else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
 			delta = 10;
 		}
-		
+
 		if (delta !== 0) {
 			e.preventDefault();
 			const newSize = Math.max(minSize, Math.min(maxSize, currentSize + delta));
-			currentSize = newSize;
-			dispatch('resize', { size: newSize });
+			reportResize(newSize);
 		}
 	}}
 >

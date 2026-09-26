@@ -44,7 +44,7 @@
 			['new-note', 'new-folder', 'save', 'delete-note', 'rename-note'].includes(s.action)
 		),
 		Navigation: shortcuts.filter((s) =>
-			['search', 'toggle-sidebar', 'previous-note', 'next-note'].includes(s.action)
+			['search', 'toggle-sidebar', 'previous-note', 'next-note', 'show-help'].includes(s.action)
 		),
 		'Text Formatting': shortcuts.filter((s) =>
 			['bold', 'italic', 'code', 'code-block', 'link'].includes(s.action)
