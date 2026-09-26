@@ -5,6 +5,7 @@
 	import { createNote, createFolder } from '$lib/firebase-service';
 	import { selectedFolder } from '$lib/stores';
 	import { Download, FileText, Archive, X, CheckCircle, AlertCircle } from 'lucide-svelte';
+	import { trapFocus } from '$lib/focus-trap';
 
 	export let visible = false;
 
@@ -96,6 +97,8 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="import-title"
+		tabindex="-1"
+		use:trapFocus
 	>
 		<div class="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
 			<div class="mb-4 flex items-center justify-between">

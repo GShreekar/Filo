@@ -3,10 +3,25 @@
 	import { EditorView, basicSetup } from 'codemirror';
 	import { markdown } from '@codemirror/lang-markdown';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import { EditorState } from '@codemirror/state';
+	import { syntaxHighlighting } from '@codemirror/language';
+	import { EditorState, Compartment, type Extension } from '@codemirror/state';
 	import { keymap } from '@codemirror/view';
 	import { indentWithTab } from '@codemirror/commands';
 	import MarkdownToolbar from './MarkdownToolbar.svelte';
+	import { theme } from '$lib/theme';
+	import { oneLightTheme, oneLightHighlightStyle } from '$lib/editor-themes';
+
+	// A separate compartment for just the color theme, so switching light/dark
+	// reconfigures that one slice of the editor's extensions in place —
+	// cursor position, undo history, and scroll position all survive it,
+	// unlike tearing down and recreating the whole EditorView.
+	const themeCompartment = new Compartment();
+
+	function themeExtension(currentTheme: 'light' | 'dark'): Extension {
+		return currentTheme === 'dark'
+			? oneDark
+			: [oneLightTheme, syntaxHighlighting(oneLightHighlightStyle)];
+	}
 
 	export let content: string = '';
 	export let onContentChange: (newContent: string) => void = () => {};
@@ -504,7 +519,7 @@
 			keymap.of([indentWithTab]),
 			scrollOnNavigation,
 			markdownShortcuts,
-			oneDark,
+			themeCompartment.of(themeExtension($theme)),
 			EditorView.lineWrapping,
 			ensureCursorVisible,
 			EditorView.updateListener.of((update) => {
@@ -561,6 +576,10 @@
 				insert: content
 			}
 		});
+	}
+
+	$: if (editorView) {
+		editorView.dispatch({ effects: themeCompartment.reconfigure(themeExtension($theme)) });
 	}
 </script>
 

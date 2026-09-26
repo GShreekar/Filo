@@ -8,9 +8,12 @@
 		Download,
 		Upload,
 		HelpCircle,
-		LogOut
+		LogOut,
+		Sun,
+		Moon
 	} from 'lucide-svelte';
 	import { currentUser, signOut } from '$lib/auth';
+	import { theme, toggleTheme } from '$lib/theme';
 	import {
 		sidebarCollapsed,
 		searchQuery,
@@ -234,6 +237,19 @@
 	</div>
 
 	<div class="flex flex-shrink-0 items-center gap-1 sm:gap-2">
+		<button
+			on:click={toggleTheme}
+			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
+			title={$theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+			aria-label={$theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+		>
+			{#if $theme === 'dark'}
+				<Sun size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
+			{:else}
+				<Moon size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
+			{/if}
+		</button>
+
 		<button
 			on:click={handleHelp}
 			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Upload, FileText, FolderOpen, Database, X } from 'lucide-svelte';
+	import { trapFocus } from '$lib/focus-trap';
 	import {
 		exportNote,
 		exportFolder,
@@ -107,6 +108,8 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="export-title"
+		tabindex="-1"
+		use:trapFocus
 	>
 		<div class="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
 			<div class="mb-4 flex items-center justify-between">

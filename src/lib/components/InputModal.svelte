@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher, tick } from 'svelte';
 	import { X } from 'lucide-svelte';
+	import { trapFocus } from '$lib/focus-trap';
 
 	export let visible: boolean = false;
 	export let title: string = 'Enter Name';
@@ -70,6 +71,7 @@
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
+		use:trapFocus
 	>
 		<!-- Modal -->
 		<div class="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-800">

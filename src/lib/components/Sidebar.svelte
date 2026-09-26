@@ -806,69 +806,8 @@
 				>
 					<h3 class="mb-2 px-2 text-sm font-medium text-gray-500 dark:text-gray-400">Notes</h3>
 					{#if standaloneNotes.length > 0}
-						{#each standaloneNotes as note}
-							<div
-								class="group relative flex items-center justify-between"
-								class:opacity-50={draggedNoteId === note.id}
-								role="menuitem"
-								tabindex="-1"
-								draggable="true"
-								on:dragstart={(e) => handleDragStart(e, note.id)}
-								on:dragend={handleDragEnd}
-								on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
-								on:touchstart={(e) => handleTouchStart(e, note.id)}
-								on:touchend={handleTouchEnd}
-								on:touchmove={handleTouchMove}
-							>
-								<button
-									on:click={() => selectNote(note)}
-									class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-									class:bg-blue-50={$selectedNote?.id === note.id}
-									class:dark:bg-blue-900={$selectedNote?.id === note.id}
-								>
-									<FileText class="h-4 w-4 text-gray-400" />
-									{#if editingNoteId === note.id}
-										<input
-											bind:this={titleInputElement}
-											bind:value={editingTitle}
-											on:keydown={handleTitleKeydown}
-											on:blur={saveNoteTitle}
-											class="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-											type="text"
-											placeholder="Enter note title..."
-										/>
-									{:else}
-										<span
-											class="cursor-pointer truncate text-sm text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
-											on:dblclick={() => startEditingNoteTitle(note.id, note.title)}
-											title="Double-click to edit title"
-											role="button"
-											tabindex="0"
-											on:keydown={(e) => {
-												if (e.key === 'Enter' || e.key === ' ') {
-													e.preventDefault();
-													startEditingNoteTitle(note.id, note.title);
-												}
-											}}
-										>
-											{note.title}
-										</span>
-									{/if}
-								</button>
-								<!-- Context menu trigger button -->
-								<button
-									class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
-										? 'opacity-100'
-										: 'opacity-0 group-hover:opacity-100'}"
-									on:click={(e) => {
-										e.stopPropagation();
-										showContextMenu(e, 'note', note.id, note.title);
-									}}
-									title="More options"
-								>
-									<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-								</button>
-							</div>
+						{#each standaloneNotes as note (note.id)}
+							{@render NoteRow(note)}
 						{/each}
 					{:else}
 						<div
@@ -930,6 +869,81 @@
 		/>
 	</div>
 {/if}
+
+{#snippet NoteRow(note: NoteMeta)}
+	<div
+		class="group relative flex items-center justify-between"
+		class:opacity-50={draggedNoteId === note.id}
+		role="menuitem"
+		tabindex="-1"
+		draggable="true"
+		on:dragstart={(e) => handleDragStart(e, note.id)}
+		on:dragend={handleDragEnd}
+		on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
+		on:touchstart={(e) => handleTouchStart(e, note.id)}
+		on:touchend={handleTouchEnd}
+		on:touchmove={handleTouchMove}
+	>
+		{#if editingNoteId === note.id}
+			<!-- A plain wrapper here, not a button — an <input> can't legally
+			     sit inside one. -->
+			<div class="flex flex-1 items-center gap-2 rounded-lg p-2">
+				<FileText class="h-4 w-4 text-gray-400" />
+				<input
+					bind:this={titleInputElement}
+					bind:value={editingTitle}
+					on:keydown={handleTitleKeydown}
+					on:blur={saveNoteTitle}
+					class="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+					type="text"
+					placeholder="Enter note title..."
+				/>
+			</div>
+		{:else}
+			<!-- role=button on the row itself, not a <button> wrapping a second
+			     role=button span — the two stacked a nested interactive element
+			     inside another with its own, conflicting keyboard handling.
+			     Renaming is still reachable via the "..." menu button below, so
+			     this only needs to carry the row's primary action (select). -->
+			<div
+				role="button"
+				tabindex="0"
+				on:click={() => selectNote(note)}
+				on:dblclick={() => startEditingNoteTitle(note.id, note.title)}
+				on:keydown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						selectNote(note);
+					}
+				}}
+				class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+				class:bg-blue-50={$selectedNote?.id === note.id}
+				class:dark:bg-blue-900={$selectedNote?.id === note.id}
+				title="Double-click to edit title"
+			>
+				<FileText class="h-4 w-4 text-gray-400" />
+				<span
+					class="cursor-pointer truncate text-sm text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+				>
+					{note.title}
+				</span>
+			</div>
+		{/if}
+		<!-- Context menu trigger button -->
+		<button
+			class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+				? 'opacity-100'
+				: 'opacity-0 group-hover:opacity-100'}"
+			on:click={(e) => {
+				e.stopPropagation();
+				showContextMenu(e, 'note', note.id, note.title);
+			}}
+			title="More options"
+		>
+			<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
+		</button>
+	</div>
+{/snippet}
 
 {#snippet FolderTree(folder: FolderType, depth: number)}
 	<div class="mb-2" style="margin-left: {depth * 16}px">
@@ -995,68 +1009,7 @@
 
 				<!-- Notes in this folder -->
 				{#each folderNotes[folder.id] || [] as note (note.id)}
-					<div
-						class="group relative flex items-center justify-between"
-						class:opacity-50={draggedNoteId === note.id}
-						role="menuitem"
-						tabindex="-1"
-						draggable="true"
-						on:dragstart={(e) => handleDragStart(e, note.id)}
-						on:dragend={handleDragEnd}
-						on:contextmenu={(e) => showContextMenu(e, 'note', note.id, note.title)}
-						on:touchstart={(e) => handleTouchStart(e, note.id)}
-						on:touchend={handleTouchEnd}
-						on:touchmove={handleTouchMove}
-					>
-						<button
-							on:click={() => selectNote(note)}
-							class="flex flex-1 items-center gap-2 rounded-lg p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
-							class:bg-blue-50={$selectedNote?.id === note.id}
-							class:dark:bg-blue-900={$selectedNote?.id === note.id}
-						>
-							<FileText class="h-4 w-4 text-gray-400" />
-							{#if editingNoteId === note.id}
-								<input
-									bind:this={titleInputElement}
-									bind:value={editingTitle}
-									on:keydown={handleTitleKeydown}
-									on:blur={saveNoteTitle}
-									class="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-sm text-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
-									type="text"
-									placeholder="Enter note title..."
-								/>
-							{:else}
-								<span
-									class="cursor-pointer truncate text-sm text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
-									on:dblclick={() => startEditingNoteTitle(note.id, note.title)}
-									title="Double-click to edit title"
-									role="button"
-									tabindex="0"
-									on:keydown={(e) => {
-										if (e.key === 'Enter' || e.key === ' ') {
-											e.preventDefault();
-											startEditingNoteTitle(note.id, note.title);
-										}
-									}}
-								>
-									{note.title}
-								</span>
-							{/if}
-						</button>
-						<!-- Context menu trigger button -->
-						<button
-							class="rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
-								? 'opacity-100'
-								: 'opacity-0 group-hover:opacity-100'}"
-							on:click={(e) => {
-								e.stopPropagation();
-								showContextMenu(e, 'note', note.id, note.title);
-							}}
-							title="More options"
-						>
-							<MoreVertical size={14} class="text-gray-500 dark:text-gray-400" />
-						</button>
-					</div>
+					{@render NoteRow(note)}
 				{/each}
 
 				{#if (folderNotes[folder.id] || []).length === 0 && getSubfolders(folder.id).length === 0}

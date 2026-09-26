@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { AlertTriangle, X } from 'lucide-svelte';
+	import { trapFocus } from '$lib/focus-trap';
 
 	export let visible: boolean = false;
 	export let title: string = 'Confirm Action';
@@ -43,6 +44,13 @@
 		}
 	}
 
+	// Tailwind's scanner reads source text for whole class names, not
+	// runtime values — text-{expr}-600 below never produced text-red-600 or
+	// text-yellow-600 in the built CSS, so the icon just inherited whatever
+	// color was already in scope. Each branch here is a complete literal
+	// string, same as buttonClasses already does correctly.
+	$: iconColorClass = type === 'danger' ? 'text-red-600' : 'text-yellow-600';
+
 	$: buttonClasses =
 		type === 'danger'
 			? 'bg-red-600 hover:bg-red-700 text-white'
@@ -64,6 +72,7 @@
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
+		use:trapFocus
 	>
 		<!-- Modal -->
 		<div class="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-800">
@@ -73,7 +82,7 @@
 			>
 				<div class="flex items-center gap-3">
 					{#if type === 'danger' || type === 'warning'}
-						<AlertTriangle class="h-6 w-6 text-{type === 'danger' ? 'red' : 'yellow'}-600" />
+						<AlertTriangle class="h-6 w-6 {iconColorClass}" />
 					{/if}
 					<h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
 						{title}
@@ -101,6 +110,7 @@
 			>
 				<button
 					on:click={handleCancel}
+					data-autofocus
 					class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
 				>
 					{cancelText}

@@ -3,11 +3,23 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { onMount } from 'svelte';
 	import { showSearchResults } from '$lib/stores';
+	import { theme, initTheme } from '$lib/theme';
+	// Imported as raw CSS text (Vite's ?inline), not applied as a stylesheet
+	// on their own — the markdown preview's syntax-highlighted code blocks
+	// need whichever one matches the app's current theme, swapped below,
+	// rather than one theme permanently baked in regardless of light/dark.
+	import darkHljsCss from 'highlight.js/styles/github-dark.css?inline';
+	import lightHljsCss from 'highlight.js/styles/github.css?inline';
 
 	let { children } = $props();
 
+	$effect(() => {
+		const styleEl = document.getElementById('hljs-theme');
+		if (styleEl) styleEl.textContent = $theme === 'dark' ? darkHljsCss : lightHljsCss;
+	});
+
 	onMount(() => {
-		document.documentElement.classList.add('dark');
+		const stopWatchingSystemTheme = initTheme();
 
 		function handleGlobalKeydown(event: KeyboardEvent) {
 			if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
@@ -27,12 +39,14 @@
 
 		return () => {
 			document.removeEventListener('keydown', handleGlobalKeydown);
+			stopWatchingSystemTheme();
 		};
 	});
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<style id="hljs-theme"></style>
 </svelte:head>
 
 <div

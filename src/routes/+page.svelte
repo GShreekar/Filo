@@ -437,15 +437,24 @@
 
 			<!-- Main Content -->
 			<main class="flex-1 overflow-hidden">
-				<button
-					class="h-full w-full overflow-hidden border-0 bg-transparent p-0 text-left outline-none focus:outline-0"
+				<!-- A plain div, not a button — MainEditor contains its own
+				     inputs/buttons/CodeMirror instance, and a button can't
+				     legally contain other interactive content. This click
+				     handler only exists to collapse the sidebar overlay on
+				     mobile when the user taps into the editor; it isn't a
+				     discrete control in its own right (keyboard users reach
+				     the same result naturally by tabbing into any of
+				     MainEditor's real controls), so it doesn't need button
+				     semantics or its own tab stop. -->
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="h-full w-full overflow-hidden"
 					bind:this={editorContainer}
 					on:click={handleEditorFocus}
-					type="button"
-					aria-label="Editor area - click to focus and collapse sidebar on mobile"
 				>
 					<MainEditor />
-				</button>
+				</div>
 			</main>
 		</div>
 	</div>

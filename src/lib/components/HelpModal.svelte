@@ -2,6 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { shortcuts } from '$lib/keyboard-shortcuts';
 	import { X } from 'lucide-svelte';
+	import { trapFocus } from '$lib/focus-trap';
 
 	export let visible = false;
 
@@ -72,6 +73,8 @@
 		role="dialog"
 		aria-modal="true"
 		aria-labelledby="help-title"
+		tabindex="-1"
+		use:trapFocus
 	>
 		<div
 			class="relative max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-gray-800"
