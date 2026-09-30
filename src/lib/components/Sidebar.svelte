@@ -20,13 +20,15 @@
 		deleteNote,
 		updateFolder,
 		updateNote,
-		moveNote
+		moveNote,
+		setFolderPinned,
+		setNotePinned
 	} from '$lib/firebase-service';
 	import { highlightText, formatTimeAgo } from '$lib/search-service';
 	import { openNote } from '$lib/note-selection';
 	import { showError } from '$lib/error-store';
 	import { tick, onMount } from 'svelte';
-	import { Folder, FolderOpen, FileText, Plus, Search, MoreVertical } from 'lucide-svelte';
+	import { Folder, FolderOpen, FileText, Plus, Search, MoreVertical, Pin } from 'lucide-svelte';
 	import ContextMenu from './ContextMenu.svelte';
 	import EmptyState from './EmptyState.svelte';
 	import type { NoteMeta, Folder as FolderType } from '$lib/types';
@@ -238,6 +240,9 @@
 					showRenameModal('renameNote', target.id, (target as NoteMeta).title);
 				}
 				break;
+			case 'pin':
+				togglePinned(type, target);
+				break;
 			case 'export':
 				if (type === 'folder') {
 					exportModal.set({
@@ -261,6 +266,16 @@
 				}
 				break;
 		}
+	}
+
+	// Shared by both context menus (the main tree's and the search results').
+	function togglePinned(type: 'folder' | 'note', target: FolderType | NoteMeta) {
+		const nextPinned = target.pinnedAt === null;
+		const action =
+			type === 'folder'
+				? setFolderPinned(target.id, nextPinned)
+				: setNotePinned(target.id, nextPinned);
+		action.catch((error) => console.error(`Failed to update ${type} pin state:`, error));
 	}
 
 	function showDeleteConfirm(action: 'deleteFolder' | 'deleteNote', id: string, name: string) {
@@ -370,6 +385,29 @@
 	);
 
 	$: rootFolders = $folders.filter((folder) => folder.parentId === null);
+
+	// Most-recently-pinned first — pinnedAt doubles as "is it pinned" (null
+	// means no) and as the sort key, off one field.
+	$: pinnedItems = [
+		...$folders.filter((folder) => folder.pinnedAt !== null),
+		...$notes.filter((note) => note.pinnedAt !== null)
+	].sort((a, b) => (b.pinnedAt?.getTime() ?? 0) - (a.pinnedAt?.getTime() ?? 0));
+
+	function pinnedItemLabel(item: FolderType | NoteMeta): string {
+		return 'name' in item ? item.name : item.title;
+	}
+
+	function pinnedItemType(item: FolderType | NoteMeta): 'folder' | 'note' {
+		return 'name' in item ? 'folder' : 'note';
+	}
+
+	function selectPinnedItem(item: FolderType | NoteMeta) {
+		if ('name' in item) {
+			selectedFolder.set(item.id);
+		} else {
+			selectNote(item);
+		}
+	}
 
 	function getSubfolders(parentId: string): FolderType[] {
 		return $folders.filter((folder) => folder.parentId === parentId);
@@ -506,6 +544,12 @@
 		switch (action) {
 			case 'rename':
 				handleSearchRename();
+				break;
+			case 'pin':
+				togglePinned(
+					'name' in searchContextMenuTarget ? 'folder' : 'note',
+					searchContextMenuTarget
+				);
 				break;
 			case 'delete':
 				handleSearchDelete();
@@ -826,6 +870,21 @@
 		{:else}
 			<!-- Folder Tree -->
 			<div class="p-2">
+				<!-- Pinned -->
+				{#if pinnedItems.length > 0}
+					<div class="mb-4">
+						<h3
+							class="mb-2 flex items-center gap-1 px-2 text-sm font-medium text-gray-500 dark:text-gray-400"
+						>
+							<Pin class="h-3.5 w-3.5" />
+							Pinned
+						</h3>
+						{#each pinnedItems as item (item.id)}
+							{@render PinnedRow(item)}
+						{/each}
+					</div>
+				{/if}
+
 				<!-- Standalone Notes -->
 				<div
 					class="mb-4"
@@ -883,6 +942,7 @@
 	x={$contextMenu.x}
 	y={$contextMenu.y}
 	type={$contextMenu.type}
+	isPinned={$contextMenu.target?.pinnedAt != null}
 	on:action={handleContextAction}
 />
 
@@ -897,11 +957,51 @@
 			y={searchContextMenuY}
 			visible={searchContextMenuVisible}
 			type={searchContextMenuType}
+			isPinned={searchContextMenuTarget?.pinnedAt != null}
 			on:close={() => (searchContextMenuVisible = false)}
 			on:action={handleSearchContextMenuAction}
 		/>
 	</div>
 {/if}
+
+{#snippet PinnedRow(item: FolderType | NoteMeta)}
+	<div class="group relative flex items-center justify-between">
+		<div
+			role="button"
+			tabindex="0"
+			on:click={() => selectPinnedItem(item)}
+			on:contextmenu={(e) =>
+				showContextMenu(e, pinnedItemType(item), item.id, pinnedItemLabel(item))}
+			on:keydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					selectPinnedItem(item);
+				}
+			}}
+			class="flex min-w-0 flex-1 items-center gap-2 rounded-lg p-2 text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+			class:ring-2={'name' in item && $selectedFolder === item.id}
+			class:ring-blue-400={'name' in item && $selectedFolder === item.id}
+		>
+			{#if 'name' in item}
+				<Folder class="h-4 w-4 flex-shrink-0 text-blue-600" />
+			{:else}
+				<FileText class="h-4 w-4 flex-shrink-0 text-gray-400" />
+			{/if}
+			<span class="truncate text-sm text-gray-700 dark:text-gray-300">
+				{pinnedItemLabel(item)}
+			</span>
+		</div>
+
+		<button
+			on:click|stopPropagation={(e) =>
+				showContextMenu(e, pinnedItemType(item), item.id, pinnedItemLabel(item))}
+			class="mr-1 flex-shrink-0 rounded p-1 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-600"
+			aria-label={`More options for ${pinnedItemLabel(item)}`}
+		>
+			<MoreVertical class="h-3.5 w-3.5 text-gray-500" />
+		</button>
+	</div>
+{/snippet}
 
 {#snippet NoteRow(note: NoteMeta)}
 	<div
@@ -954,12 +1054,15 @@
 				class:dark:bg-blue-900={$selectedNote?.id === note.id}
 				title="Double-click to edit title"
 			>
-				<FileText class="h-4 w-4 text-gray-400" />
+				<FileText class="h-4 w-4 flex-shrink-0 text-gray-400" />
 				<span
 					class="cursor-pointer truncate text-sm text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
 				>
 					{note.title}
 				</span>
+				{#if note.pinnedAt !== null}
+					<Pin class="h-3 w-3 flex-shrink-0 text-amber-500" aria-label="Pinned" />
+				{/if}
 			</div>
 		{/if}
 		<!-- Context menu trigger button -->
@@ -1007,6 +1110,10 @@
 				<span class="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
 					{folder.name}
 				</span>
+
+				{#if folder.pinnedAt !== null}
+					<Pin class="h-3 w-3 flex-shrink-0 text-amber-500" aria-label="Pinned" />
+				{/if}
 
 				<!-- Show notes count -->
 				{#if (folderNoteCounts.get(folder.id) ?? 0) > 0}

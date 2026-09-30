@@ -147,6 +147,17 @@ describe('the allowlisted owner — notes (metadata)', () => {
 		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { revision: 1.5 })));
 		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { revision: '1' })));
 	});
+
+	test('accepts pinning and unpinning a note', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertSucceeds(updateDoc(doc(db, 'notes/owned'), { pinnedAt: Timestamp.now() }));
+		await assertSucceeds(updateDoc(doc(db, 'notes/owned'), { pinnedAt: null }));
+	});
+
+	test('rejects a wrong-typed pinnedAt', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(updateDoc(doc(db, 'notes/owned'), { pinnedAt: 'yesterday' }));
+	});
 });
 
 describe('the allowlisted owner — note contents', () => {
@@ -200,6 +211,17 @@ describe('the allowlisted owner — folders', () => {
 	test('rejects an empty folder name', async () => {
 		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
 		await assertFails(setDoc(doc(db, 'folders/bad'), folder(OWNER_UID, { name: '' })));
+	});
+
+	test('accepts pinning and unpinning a folder', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertSucceeds(updateDoc(doc(db, 'folders/owned'), { pinnedAt: Timestamp.now() }));
+		await assertSucceeds(updateDoc(doc(db, 'folders/owned'), { pinnedAt: null }));
+	});
+
+	test('rejects a wrong-typed pinnedAt', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(updateDoc(doc(db, 'folders/owned'), { pinnedAt: 'yesterday' }));
 	});
 });
 

@@ -9,7 +9,14 @@
 	import type { Folder as FolderType, NoteMeta } from '$lib/types';
 	import { highlightText, formatTimeAgo } from '$lib/search-service';
 	import ContextMenu from './ContextMenu.svelte';
-	import { updateNote, deleteNote, updateFolder, deleteFolder } from '$lib/firebase-service';
+	import {
+		updateNote,
+		deleteNote,
+		updateFolder,
+		deleteFolder,
+		setNotePinned,
+		setFolderPinned
+	} from '$lib/firebase-service';
 	import { inputModal, confirmModal } from '$lib/stores';
 
 	export let results: CombinedSearchResult[] = [];
@@ -148,6 +155,9 @@
 			case 'rename':
 				handleRename();
 				break;
+			case 'pin':
+				handlePinToggle();
+				break;
 			case 'delete':
 				handleDelete();
 				break;
@@ -185,6 +195,17 @@
 				}
 			}
 		});
+	}
+
+	function handlePinToggle() {
+		if (!contextMenuTarget) return;
+		const target = contextMenuTarget;
+		const nextPinned = target.pinnedAt === null;
+
+		const action = 'name' in target ? setFolderPinned : setNotePinned;
+		action(target.id, nextPinned).catch((error) =>
+			console.error('Error updating pin state:', error)
+		);
 	}
 
 	async function handleDelete() {
@@ -603,6 +624,7 @@
 			y={contextMenuY}
 			visible={contextMenuVisible}
 			type={contextMenuType}
+			isPinned={contextMenuTarget?.pinnedAt != null}
 			on:close={() => (contextMenuVisible = false)}
 			on:action={handleContextMenuAction}
 		/>

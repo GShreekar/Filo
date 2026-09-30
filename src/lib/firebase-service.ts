@@ -29,7 +29,8 @@ export async function createFolder(name: string, parentId: string | null = null)
 			name,
 			parentId: parentId || null,
 			ownerId,
-			createdAt: Timestamp.now()
+			createdAt: Timestamp.now(),
+			pinnedAt: null
 		});
 		showError(`Folder "${name}" created successfully`, 'success');
 		return docRef.id;
@@ -55,6 +56,20 @@ export async function updateFolder(id: string, name: string): Promise<void> {
 		throw error;
 	} finally {
 		isSaving.set(false);
+	}
+}
+
+// Deliberately not routed through updateFolder(): pinning isn't a rename, and
+// shouldn't show a "renamed successfully" toast or require a name argument.
+export async function setFolderPinned(id: string, pinned: boolean): Promise<void> {
+	try {
+		await updateDoc(doc(db, 'folders', id), {
+			pinnedAt: pinned ? Timestamp.now() : null
+		});
+	} catch (error) {
+		console.error('Error updating folder pin state:', error);
+		showError('Failed to update pin. Please try again.');
+		throw error;
 	}
 }
 
@@ -164,7 +179,8 @@ export async function createNote(
 			ownerId,
 			createdAt: Timestamp.now(),
 			updatedAt: Timestamp.now(),
-			revision: 0
+			revision: 0,
+			pinnedAt: null
 		});
 		batch.set(doc(db, 'noteContents', noteRef.id), { content, ownerId });
 		await batch.commit();
@@ -240,6 +256,21 @@ export async function moveNote(id: string, newFolderId: string | null): Promise<
 	}
 }
 
+// Not routed through updateNote(): pinning doesn't touch title/content, so it
+// has no business bumping revision (5.1.3's conflict check) or updatedAt (which
+// would reorder the note in the main list — pinned order is tracked separately).
+export async function setNotePinned(id: string, pinned: boolean): Promise<void> {
+	try {
+		await updateDoc(doc(db, 'notes', id), {
+			pinnedAt: pinned ? Timestamp.now() : null
+		});
+	} catch (error) {
+		console.error('Error updating note pin state:', error);
+		showError('Failed to update pin. Please try again.');
+		throw error;
+	}
+}
+
 export async function deleteNote(id: string): Promise<void> {
 	try {
 		isLoading.set(true);
@@ -273,7 +304,8 @@ export function subscribeFolders(userId: string) {
 					name: doc.data().name,
 					parentId: doc.data().parentId || null,
 					ownerId: doc.data().ownerId,
-					createdAt: doc.data().createdAt?.toDate() ?? new Date()
+					createdAt: doc.data().createdAt?.toDate() ?? new Date(),
+					pinnedAt: doc.data().pinnedAt?.toDate() ?? null
 				}));
 				folders.set(folderData);
 			},
@@ -313,7 +345,8 @@ export function subscribeNotes(userId: string) {
 					// Notes written before this field existed have none in
 					// Firestore — treated as revision 0 rather than migrated,
 					// since the next write to any such note stamps a real one.
-					revision: doc.data().revision ?? 0
+					revision: doc.data().revision ?? 0,
+					pinnedAt: doc.data().pinnedAt?.toDate() ?? null
 				}));
 				notes.set(noteData);
 			},

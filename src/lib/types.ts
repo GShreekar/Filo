@@ -4,6 +4,9 @@ export interface Folder {
 	createdAt: Date;
 	parentId: string | null;
 	ownerId: string;
+	// Non-null when pinned, holding when it was pinned — sorts the sidebar's
+	// Pinned section most-recently-pinned first, for free, off one field.
+	pinnedAt: Date | null;
 }
 
 // What the sidebar/search list actually needs. Deliberately excludes
@@ -22,6 +25,8 @@ export interface NoteMeta {
 	// tab/session notice its in-memory copy is stale before it overwrites a
 	// newer save with one made from older content (see conflict-store.ts).
 	revision: number;
+	// Non-null when pinned, holding when it was pinned — see Folder.pinnedAt.
+	pinnedAt: Date | null;
 }
 
 // A note with its body attached — what the editor and export need. Always a

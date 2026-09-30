@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { Edit2, Trash2, Plus, Upload } from 'lucide-svelte';
+	import { Edit2, Trash2, Plus, Upload, Pin, PinOff } from 'lucide-svelte';
 
 	export let x: number = 0;
 	export let y: number = 0;
 	export let visible: boolean = false;
 	export let type: 'folder' | 'note' = 'folder';
+	export let isPinned: boolean = false;
 
 	const dispatch = createEventDispatcher();
 
@@ -88,6 +89,19 @@
 			</button>
 
 			<button
+				on:click={() => handleAction('pin')}
+				class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+			>
+				{#if isPinned}
+					<PinOff class="h-4 w-4" />
+					Unpin Folder
+				{:else}
+					<Pin class="h-4 w-4" />
+					Pin Folder
+				{/if}
+			</button>
+
+			<button
 				on:click={() => handleAction('export')}
 				class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
 			>
@@ -109,6 +123,19 @@
 			>
 				<Edit2 class="h-4 w-4" />
 				Rename Note
+			</button>
+
+			<button
+				on:click={() => handleAction('pin')}
+				class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+			>
+				{#if isPinned}
+					<PinOff class="h-4 w-4" />
+					Unpin Note
+				{:else}
+					<Pin class="h-4 w-4" />
+					Pin Note
+				{/if}
 			</button>
 
 			<button

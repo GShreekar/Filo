@@ -13,6 +13,7 @@ function makeNote(overrides: Partial<NoteMeta> = {}): NoteMeta {
 		folderId: null,
 		ownerId: 'owner',
 		revision: 0,
+		pinnedAt: null,
 		...overrides
 	};
 }
@@ -24,6 +25,7 @@ function makeFolder(overrides: Partial<Folder> = {}): Folder {
 		createdAt: new Date('2026-01-01'),
 		parentId: null,
 		ownerId: 'owner',
+		pinnedAt: null,
 		...overrides
 	};
 }

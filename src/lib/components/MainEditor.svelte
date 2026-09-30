@@ -24,14 +24,26 @@
 		getBaseRevision,
 		syncBaseRevision
 	} from '$lib/auto-save';
-	import { createNote, subscribeNoteContent } from '$lib/firebase-service';
+	import { createNote, subscribeNoteContent, setNotePinned } from '$lib/firebase-service';
 	import { openNote } from '$lib/note-selection';
 	import { showError } from '$lib/error-store';
 	import { computeTextStats, formatReadingTime } from '$lib/text-stats';
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import TabSlider from './TabSlider.svelte';
-	import { FileText, Eye, Edit, Clock, Smartphone, Monitor, Tablet, X, Plus } from 'lucide-svelte';
+	import {
+		FileText,
+		Eye,
+		Edit,
+		Clock,
+		Smartphone,
+		Monitor,
+		Tablet,
+		X,
+		Plus,
+		Pin,
+		PinOff
+	} from 'lucide-svelte';
 	import { onMount, onDestroy, tick } from 'svelte';
 
 	let content = '';
@@ -316,6 +328,13 @@
 		selectedNote.set(null);
 	}
 
+	function togglePin() {
+		if (!$selectedNote) return;
+		setNotePinned($selectedNote.id, $selectedNote.pinnedAt === null).catch((error) =>
+			console.error('Failed to update note pin state:', error)
+		);
+	}
+
 	// Discards this session's unsaved edits in favor of whatever another
 	// tab/session last saved, and resets autosave to track that as the new
 	// baseline — the "Reload latest version" side of the conflict banner.
@@ -424,6 +443,20 @@
 						Desktop
 					{/if}
 				</div>
+
+				<!-- Pin toggle -->
+				<button
+					on:click={togglePin}
+					class="rounded-lg p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+					title={$selectedNote.pinnedAt !== null ? 'Unpin note' : 'Pin note'}
+					aria-label={$selectedNote.pinnedAt !== null ? 'Unpin note' : 'Pin note'}
+				>
+					{#if $selectedNote.pinnedAt !== null}
+						<PinOff class="h-4 w-4 text-amber-500" />
+					{:else}
+						<Pin class="h-4 w-4 text-gray-500 dark:text-gray-400" />
+					{/if}
+				</button>
 
 				<!-- Close button -->
 				<button

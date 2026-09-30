@@ -37,11 +37,12 @@ service cloud.firestore {
     // They reject unexpected extra fields, wrong types, and oversized text.
 
     function isValidFolder(data) {
-      return data.keys().hasOnly(['name', 'parentId', 'ownerId', 'createdAt'])
+      return data.keys().hasOnly(['name', 'parentId', 'ownerId', 'createdAt', 'pinnedAt'])
         && data.ownerId is string
         && data.name is string && data.name.size() > 0 && data.name.size() <= 300
         && (data.parentId == null || data.parentId is string)
-        && data.createdAt is timestamp;
+        && data.createdAt is timestamp
+        && (!('pinnedAt' in data) || data.pinnedAt == null || data.pinnedAt is timestamp);
     }
 
     // Metadata only — no content. The sidebar/search-list listener subscribes
@@ -55,14 +56,15 @@ service cloud.firestore {
     // gain by policing it more strictly than that.
     function isValidNote(data) {
       return data.keys().hasOnly(
-          ['title', 'folderId', 'ownerId', 'createdAt', 'updatedAt', 'revision']
+          ['title', 'folderId', 'ownerId', 'createdAt', 'updatedAt', 'revision', 'pinnedAt']
         )
         && data.ownerId is string
         && data.title is string && data.title.size() > 0 && data.title.size() <= 300
         && (data.folderId == null || data.folderId is string)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
-        && (!('revision' in data) || (data.revision is int && data.revision >= 0));
+        && (!('revision' in data) || (data.revision is int && data.revision >= 0))
+        && (!('pinnedAt' in data) || data.pinnedAt == null || data.pinnedAt is timestamp);
     }
 
     // A note's body, split into its own doc (same id as the note) so it's
