@@ -460,10 +460,6 @@ body {
 	text-align: center;
 }
 
-.katex-display .katex {
-	line-height: 1 !important;
-}
-
 .katex .base,
 .katex .strut {
 	line-height: 1 !important;
@@ -492,38 +488,19 @@ br + .katex-display {
 	display: none;
 }
 
-.katex-display .mord,
-.katex-display .mrel,
-.katex-display .mbin,
-.katex-display .mopen,
-.katex-display .mclose {
-	line-height: 1 !important;
-}
-
 .katex-display .delimsizing,
 .katex-display .delim-size1,
 .katex-display .delim-size2,
 .katex-display .delim-size3,
 .katex-display .delim-size4 {
-	line-height: 1 !important;
 	vertical-align: top;
 }
 
-.katex-display .mtable,
-.katex-display .arraycolsep,
-.katex-display .col-align-c {
-	line-height: 1 !important;
-}
-
-.katex-display span {
-	line-height: 1 !important;
-}
-
-.katex-display .delimcenter,
-.katex-display .pstrut {
-	line-height: 1 !important;
-}
-
+/* Every descendant of a display-math block gets line-height:1 (KaTeX's own
+   spacing math assumes this) via one blanket rule, rather than the long list
+   of individually-targeted descendant selectors this used to be — each of
+   which set this exact same property to this exact same value and so never
+   did anything the blanket rule below doesn't already cover. */
 .katex-display * {
 	line-height: 1 !important;
 	margin-top: 0 !important;
