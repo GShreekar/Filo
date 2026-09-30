@@ -161,22 +161,14 @@
 	}
 
 	async function startEditingTitle() {
-		console.log('startEditingTitle called', { selectedNote: $selectedNote, isEditingTitle });
 		if ($selectedNote) {
-			console.log('Setting editing mode for note:', $selectedNote.title);
 			isEditingTitle = true;
 			editingTitle = $selectedNote.title;
-			console.log('State after setting:', { isEditingTitle, editingTitle });
 
 			await tick();
 			setTimeout(() => {
-				if (titleInputElement) {
-					titleInputElement.focus();
-					titleInputElement.select();
-					console.log('Input focused successfully');
-				} else {
-					console.log('titleInputElement is null');
-				}
+				titleInputElement?.focus();
+				titleInputElement?.select();
 			}, 50);
 		}
 	}
@@ -313,10 +305,7 @@
 					/>
 				{:else}
 					<span
-						on:dblclick={() => {
-							console.log('Title double-clicked!');
-							startEditingTitle();
-						}}
+						on:dblclick={startEditingTitle}
 						class="cursor-pointer truncate rounded px-1 py-0.5 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-100 hover:text-blue-600 dark:text-gray-100 dark:hover:bg-gray-700 dark:hover:text-blue-400"
 						title="Double-click to edit title"
 						role="button"

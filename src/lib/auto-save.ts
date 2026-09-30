@@ -48,7 +48,10 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 		if (state.titleDirty) update.title = state.title;
 
 		if (Object.keys(update).length > 0) {
-			await updateNote(noteId, update);
+			// Silent: a toast for every debounced keystroke-driven save (title
+			// edits in particular) is noise, not feedback — explicit rename
+			// actions elsewhere still show one.
+			await updateNote(noteId, update, { silent: true });
 		}
 
 		autoSaveState.update((state) => ({

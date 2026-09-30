@@ -44,6 +44,6 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === 'true
 	try {
 		connectFunctionsEmulator(functions, 'localhost', 5001);
 	} catch (error) {
-		console.log('Functions emulator connection:', error);
+		console.warn('Functions emulator connection:', error);
 	}
 }

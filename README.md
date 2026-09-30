@@ -15,7 +15,7 @@ A clean, fast, and intelligent note-taking application built with SvelteKit and 
 ### **🔍 Powerful Search & Discovery**
 
 - **Full-Text Search**: Lightning-fast search across all notes and folders with intelligent ranking
-- **Advanced Search Operators**: 
+- **Advanced Search Operators**:
   - `folder:name` - Search within specific folders
   - `title:text` - Search only in note titles
   - Smart content matching with highlighted results
@@ -53,7 +53,7 @@ A clean, fast, and intelligent note-taking application built with SvelteKit and 
   - Highlighting: `==highlighted text==`
   - Footnotes: `[^1]` with automatic linking
   - Abbreviations: Hover tooltips for defined terms
-- **Code Features**: 
+- **Code Features**:
   - Inline code and fenced code blocks
   - Syntax highlighting with language detection
   - Code block attributes and classes
@@ -64,7 +64,6 @@ A clean, fast, and intelligent note-taking application built with SvelteKit and 
 - **Intelligent Debouncing**: Smart auto-save timing to prevent excessive API calls
 - **Error Recovery**: Robust error handling with retry mechanisms
 - **Loading States**: Visual feedback for all operations with loading spinners
-- **Memory Efficient**: Optimized rendering for large notes and folders
 
 ## Getting Started
 
@@ -144,30 +143,37 @@ Filo supports extended markdown with powerful plugins and focuses on the univers
 
 ## ⌨️ Keyboard Shortcuts
 
-| Category | Action | Shortcut | Description |
-|----------|--------|----------|-------------|
-| **File Operations** | New note | `Ctrl+N` | Create a new note in current folder |
-| | New folder | `Ctrl+Shift+N` | Create a new folder |
-| | Save | `Ctrl+S` | Manually save current note |
-| **Search & Navigation** | Search/Focus | `Ctrl+K` or `Ctrl+F` | Focus search input |
-| | Toggle sidebar | `Ctrl+\` | Show/hide sidebar navigation |
-| **Text Formatting** | Bold | `Ctrl+B` | Make selected text bold |
-| | Italic | `Ctrl+I` | Make selected text italic |
-| | Inline code | `Ctrl+E` | Wrap selection in backticks |
-| | Code block | `Ctrl+Shift+E` | Create fenced code block |
-| | Insert link | `Ctrl+L` | Insert markdown link |
-| **Headings** | Heading 1-6 | `Ctrl+1` to `Ctrl+6` | Insert heading at cursor |
-| **Lists** | Bullet list | `Ctrl+U` | Create unordered list |
-| | Numbered list | `Ctrl+O` | Create ordered list |
-| **View Modes** | Editor only | `Ctrl+Alt+1` | Show editor panel only |
-| | Split view | `Ctrl+Alt+2` | Show editor and preview |
-| | Preview only | `Ctrl+Alt+3` | Show preview panel only |
+| Category                | Action         | Shortcut             | Description                                       |
+| ----------------------- | -------------- | -------------------- | ------------------------------------------------- |
+| **File Operations**     | New note       | `Alt+N`              | Create a new note in current folder               |
+|                         | New folder     | `Alt+Shift+N`        | Create a new folder                               |
+|                         | Save           | `Ctrl+S`             | Manually flush a pending auto-save                |
+|                         | Delete note    | `Alt+Delete`         | Delete the current note                           |
+|                         | Rename note    | `Alt+R`              | Rename the current note                           |
+| **Search & Navigation** | Search/Focus   | `Ctrl+K`             | Focus search input                                |
+|                         | Toggle sidebar | `Ctrl+\`             | Show/hide sidebar navigation                      |
+|                         | Previous note  | `Alt+←`              | Select the previous note in the current folder    |
+|                         | Next note      | `Alt+→`              | Select the next note in the current folder        |
+|                         | Help           | `Alt+H`              | Open the help & shortcuts modal                   |
+| **Text Formatting**     | Bold           | `Ctrl+B`             | Make selected text bold                           |
+|                         | Italic         | `Ctrl+I`             | Make selected text italic                         |
+|                         | Inline code    | `Ctrl+E`             | Wrap selection in backticks                       |
+|                         | Code block     | `Ctrl+Shift+E`       | Create fenced code block                          |
+|                         | Insert link    | `Ctrl+L`             | Insert markdown link                              |
+| **Headings**            | Heading 1-6    | `Ctrl+1` to `Ctrl+6` | Insert heading at cursor (inside the editor only) |
+| **Lists**               | Bullet list    | `Ctrl+Shift+8`       | Create unordered list                             |
+|                         | Numbered list  | `Ctrl+Shift+7`       | Create ordered list                               |
+| **View Modes**          | Editor only    | `Ctrl+Alt+1`         | Show editor panel only                            |
+|                         | Split view     | `Ctrl+Alt+2`         | Show editor and preview                           |
+|                         | Preview only   | `Ctrl+Alt+3`         | Show preview panel only                           |
+| **Import/Export**       | Export note    | `Alt+E`              | Export the current note                           |
+|                         | Import notes   | `Alt+I`              | Import notes into the workspace                   |
 
 ## 🏗️ Technical Architecture
 
 ### **Frontend Stack**
 
-- **SvelteKit 2.43+**: Modern full-stack web framework with SSR and static generation
+- **SvelteKit 2.43+**: Modern full-stack web framework, used here for client-side rendering and static generation (SSR is disabled — see `+layout.ts`)
 - **Svelte 5.0**: Reactive framework with new runes API and improved performance
 - **TypeScript 5.0+**: Full type safety with comprehensive IDE support
 - **Tailwind CSS 4.0**: Modern utility-first CSS framework with advanced features
@@ -213,12 +219,10 @@ Filo supports extended markdown with powerful plugins and focuses on the univers
 
 ### **Performance Features**
 
-- **Real-time Synchronization**: Sub-second sync across devices with conflict resolution
+- **Real-time Synchronization**: Sub-second sync across devices
 - **Smart Auto-save**: Debounced saving that only triggers on actual content changes
 - **Offline-first Architecture**: Full functionality without internet connection
 - **Intelligent Caching**: Optimized data loading with Firebase offline persistence
-- **Memory Management**: Efficient rendering for large documents and workspaces
-- **Progressive Enhancement**: Works with JavaScript disabled for core functionality
 
 ## 🚀 Development
 
@@ -286,12 +290,14 @@ static/                     # Static assets
 #### Firebase Hosting (Recommended)
 
 1. **Install Firebase CLI**:
+
    ```bash
    npm install -g firebase-tools
    firebase login
    ```
 
 2. **Initialize Project** (already configured):
+
    ```bash
    firebase init hosting
    ```
@@ -305,7 +311,7 @@ static/                     # Static assets
 #### Alternative Platforms
 
 - **Vercel**: `npm run build` → Deploy `build/` directory
-- **Netlify**: `npm run build` → Deploy `build/` directory  
+- **Netlify**: `npm run build` → Deploy `build/` directory
 - **GitHub Pages**: Configure GitHub Actions for automatic deployment
 - **Self-hosted**: Serve `build/` directory with any static file server
 
@@ -373,18 +379,18 @@ We welcome contributions from developers, designers, and users! Here's how you c
 ### **Getting Started**
 
 1. **Fork the Repository**: Click the "Fork" button on GitHub
-2. **Clone Your Fork**: 
+2. **Clone Your Fork**:
    ```bash
    git clone https://github.com/your-username/Filo.git
    cd filo
    npm install
    ```
-3. **Create a Branch**: 
+3. **Create a Branch**:
    ```bash
    git checkout -b feature/your-feature-name
    ```
 4. **Make Changes**: Implement your feature or bug fix
-5. **Test Your Changes**: 
+5. **Test Your Changes**:
    ```bash
    npm run check
    npm run lint
@@ -423,30 +429,36 @@ Found a bug or have a feature request? [Open an issue](https://github.com/GShree
 Filo is built with incredible open-source technologies and tools:
 
 ### **Core Framework & Build Tools**
+
 - [SvelteKit](https://kit.svelte.dev/) - Full-stack web framework with outstanding developer experience
 - [Svelte 5](https://svelte.dev/) - Reactive component framework with revolutionary runes API
 - [Vite](https://vitejs.dev/) - Lightning-fast build tool and development server
 - [TypeScript](https://www.typescriptlang.org/) - Type-safe JavaScript with excellent tooling
 
 ### **Backend & Infrastructure**
+
 - [Firebase](https://firebase.google.com/) - Complete backend platform with real-time database
 - [Firestore](https://firebase.google.com/products/firestore) - NoSQL database with offline support
 
 ### **User Interface & Styling**
+
 - [Tailwind CSS](https://tailwindcss.com/) - Utility-first CSS framework for rapid development
 - [Lucide](https://lucide.dev/) - Beautiful, customizable icon library
 - [CodeMirror 6](https://codemirror.net/) - Advanced text editor with extensible architecture
 
 ### **Markdown Processing & Rendering**
+
 - [markdown-it](https://github.com/markdown-it/markdown-it) - Configurable markdown parser with rich plugin ecosystem
 - [KaTeX](https://katex.org/) - Fast math typesetting library for beautiful equations
 - [highlight.js](https://highlightjs.org/) - Syntax highlighting for 180+ programming languages
 
 ### **File Processing & Export**
+
 - [JSZip](https://stuk.github.io/jszip/) - JavaScript library for creating and reading ZIP files
 - [FileSaver.js](https://github.com/eligrey/FileSaver.js/) - Cross-browser file saving functionality
 
 ### **Development & Quality Tools**
+
 - [ESLint](https://eslint.org/) - Pluggable JavaScript linting utility
 - [Prettier](https://prettier.io/) - Opinionated code formatter for consistent style
 - [@sveltejs/adapter-static](https://github.com/sveltejs/kit/tree/master/packages/adapter-static) - Static site generation for SvelteKit
@@ -466,4 +478,4 @@ This project is open source and available under the [MIT License](LICENSE).
 
 **Copyright (c) 2024 GShreekar**
 
-*Made with ❤️ for writers, thinkers, and note-takers everywhere.*
+_Made with ❤️ for writers, thinkers, and note-takers everywhere._

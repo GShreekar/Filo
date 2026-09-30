@@ -84,3 +84,58 @@ describe('searchAll — bare prefix with no term', () => {
 		expect(results.length).toBe(0);
 	});
 });
+
+describe('searchAll — case-insensitive matching against the original text', () => {
+	test('is case-insensitive', () => {
+		notes.set([makeNote({ id: 'n1', title: 'Shopping List' })]);
+		folders.set([]);
+		noteContentCache.set(new Map());
+
+		const results = searchAll('shopping');
+		expect(results.length).toBe(1);
+		expect(results[0].noteResult?.titleMatches[0]?.text).toBe('Shopping');
+	});
+
+	test('match offsets stay correct when case-folding would change string length', () => {
+		// 'İ'.toLowerCase() is two UTF-16 code units ('i' + a combining dot
+		// above) — matching against a lowercased copy of the title would
+		// shift every index after it, corrupting the highlighted match text
+		// and the generated excerpt for any content that follows.
+		notes.set([makeNote({ id: 'n1', title: 'İstanbul notes' })]);
+		folders.set([]);
+		noteContentCache.set(new Map());
+
+		const results = searchAll('notes');
+		expect(results.length).toBe(1);
+		const match = results[0].noteResult?.titleMatches[0];
+		expect(match?.text).toBe('notes');
+		expect(match?.start).toBe(9);
+	});
+
+	test('regex metacharacters in the query are matched literally', () => {
+		notes.set([makeNote({ id: 'n1', title: 'a (draft) note' })]);
+		folders.set([]);
+		noteContentCache.set(new Map());
+
+		const results = searchAll('(draft)');
+		expect(results.length).toBe(1);
+		expect(results[0].noteResult?.titleMatches[0]?.text).toBe('(draft)');
+	});
+});
+
+describe('searchAll — generateExcerpt respects maxLength', () => {
+	test('a longer excerpt window surfaces more context around the match', () => {
+		const content = `${'a'.repeat(100)} needle ${'b'.repeat(100)}`;
+		notes.set([makeNote({ id: 'n1', title: 'Note' })]);
+		folders.set([]);
+		noteContentCache.set(new Map([['n1', content]]));
+
+		const results = searchAll('content:needle');
+		const excerpt = results[0].noteResult?.excerpt ?? '';
+		// Default maxLength (150) can't fit 100 'a's before the match plus
+		// the match itself plus trailing context — the excerpt must have
+		// been clamped, not left at the content's full length.
+		expect(excerpt.length).toBeLessThan(content.length);
+		expect(excerpt).toContain('needle');
+	});
+});

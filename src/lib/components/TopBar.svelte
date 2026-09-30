@@ -147,15 +147,15 @@
 			if ($selectedSearchIndex >= 0 && $selectedSearchIndex < $searchResults.length) {
 				const result = $searchResults[$selectedSearchIndex];
 				if (result.type === 'note' && result.noteResult) {
-					selectSearchResult(result.noteResult, $selectedSearchIndex);
+					selectSearchResult(result.noteResult);
 				} else if (result.type === 'folder' && result.folderResult) {
-					selectFolder(result.folderResult.folder, $selectedSearchIndex);
+					selectFolder(result.folderResult.folder);
 				}
 			}
 		}
 	}
 
-	function selectSearchResult(result: EnhancedSearchResult, index: number) {
+	function selectSearchResult(result: EnhancedSearchResult) {
 		openNote(result.note);
 		if (typeof window !== 'undefined' && window.innerWidth < 768) {
 			sidebarCollapsed.set(true);
@@ -164,7 +164,7 @@
 		searchInput?.blur();
 	}
 
-	function selectFolder(folder: FolderType, index: number) {
+	function selectFolder(folder: FolderType) {
 		// Sidebar reacts to selectedFolder by expanding this folder's
 		// ancestor chain and highlighting it, so it's actually visible in
 		// the tree rather than just closing the dropdown with nothing to
@@ -230,8 +230,8 @@
 						results={$searchResults}
 						selectedIndex={$selectedSearchIndex}
 						query={$searchQuery}
-						on:select={(e) => selectSearchResult(e.detail.result, e.detail.index)}
-						on:selectFolder={(e) => selectFolder(e.detail.folder, e.detail.index)}
+						on:select={(e) => selectSearchResult(e.detail.result)}
+						on:selectFolder={(e) => selectFolder(e.detail.folder)}
 					/>
 				</div>
 			{/if}
@@ -279,7 +279,7 @@
 		<button
 			on:click={handleNewNote}
 			class="rounded-lg p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-			title="New Note (Ctrl+N)"
+			title="New Note (Alt+N)"
 		>
 			<Plus size={18} class="text-gray-600 sm:size-5 dark:text-gray-400" />
 		</button>
@@ -287,7 +287,7 @@
 		<button
 			on:click={handleNewFolder}
 			class="hidden rounded-lg p-2 transition-colors hover:bg-gray-100 sm:block dark:hover:bg-gray-800"
-			title="New Folder (Ctrl+Shift+N)"
+			title="New Folder (Alt+Shift+N)"
 		>
 			<FolderPlus size={20} class="text-gray-600 dark:text-gray-400" />
 		</button>

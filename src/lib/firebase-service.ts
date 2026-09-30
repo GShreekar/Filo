@@ -181,7 +181,8 @@ export async function createNote(
 
 export async function updateNote(
 	id: string,
-	updates: Partial<Pick<Note, 'title' | 'content'>>
+	updates: Partial<Pick<Note, 'title' | 'content'>>,
+	options: { silent?: boolean } = {}
 ): Promise<void> {
 	try {
 		isSaving.set(true);
@@ -206,7 +207,7 @@ export async function updateNote(
 
 		await batch.commit();
 
-		if (updates.title) {
+		if (updates.title && !options.silent) {
 			showError('Note updated successfully', 'success');
 		}
 	} catch (error) {

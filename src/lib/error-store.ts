@@ -11,9 +11,13 @@ export const errors = writable<AppError[]>([]);
 export const isLoading = writable<boolean>(false);
 export const isSaving = writable<boolean>(false);
 
+// A counter, not Date.now(): two toasts raised in the same millisecond used
+// to share an ID, so dismissing one dismissed both.
+let nextErrorId = 0;
+
 export function showError(message: string, type: 'error' | 'warning' | 'success' = 'error') {
 	const error: AppError = {
-		id: Date.now().toString(),
+		id: `${Date.now()}-${nextErrorId++}`,
 		message,
 		type,
 		timestamp: new Date()

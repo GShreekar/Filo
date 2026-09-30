@@ -20,7 +20,6 @@ export const shortcuts: KeyboardShortcut[] = [
 	{ key: 's', ctrlKey: true, action: 'save', description: 'Save note' },
 
 	{ key: 'k', ctrlKey: true, action: 'search', description: 'Focus search' },
-	{ key: 'f', ctrlKey: true, action: 'search', description: 'Focus search (alternative)' },
 
 	{ key: 'b', ctrlKey: true, action: 'bold', description: 'Bold text' },
 	{ key: 'i', ctrlKey: true, action: 'italic', description: 'Italic text' },

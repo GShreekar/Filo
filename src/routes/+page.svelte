@@ -213,68 +213,36 @@
 		}
 
 		for (const shortcut of shortcuts) {
-			if (matchesShortcut(event, shortcut)) {
-				const target = event.target as HTMLElement;
+			if (!matchesShortcut(event, shortcut)) continue;
 
-				const isInEditor =
-					target.tagName === 'INPUT' ||
-					target.tagName === 'TEXTAREA' ||
-					target.contentEditable === 'true' ||
-					target.closest('.cm-editor');
-
-				if (
-					[
-						'new-note',
-						'new-folder',
-						'save',
-						'search',
-						'toggle-sidebar',
-						'previous-note',
-						'next-note',
-						'delete-note',
-						'rename-note',
-						'export-note',
-						'import-notes',
-						'show-help'
-					].includes(shortcut.action)
-				) {
-					event.preventDefault();
-					handleGlobalShortcut(shortcut.action);
-					break;
-				}
-
-				if (isInEditor) {
-					if (
-						[
-							'bold',
-							'italic',
-							'link',
-							'code',
-							'code-block',
-							'heading-1',
-							'heading-2',
-							'heading-3',
-							'heading-4',
-							'heading-5',
-							'heading-6',
-							'unordered-list',
-							'ordered-list'
-						].includes(shortcut.action)
-					) {
-						return;
-					}
-					return;
-				}
-
+			if (
+				[
+					'new-note',
+					'new-folder',
+					'save',
+					'search',
+					'toggle-sidebar',
+					'previous-note',
+					'next-note',
+					'delete-note',
+					'rename-note',
+					'export-note',
+					'import-notes',
+					'show-help'
+				].includes(shortcut.action)
+			) {
 				event.preventDefault();
-
-				if (shortcut.action.startsWith('view-')) {
-					return;
-				}
-
 				handleGlobalShortcut(shortcut.action);
-				break;
 			}
+
+			// Formatting shortcuts (bold, headings, lists, ...) only do
+			// anything inside the editor, where CodeMirror's own keymap
+			// already handles them, and view-mode shortcuts are handled by
+			// MainEditor's own listener — never preventDefault for either
+			// here, or e.g. Ctrl+1..6 would swallow the browser's
+			// tab-switching shortcut for no effect whenever focus is
+			// elsewhere.
+			return;
 		}
 	}
 
@@ -294,12 +262,6 @@
 		const currentNote = get(selectedNote);
 		if (!currentNote) return;
 
-		console.log('Navigation debug:', {
-			direction,
-			currentNote: currentNote.title,
-			selectedNoteFolder: currentNote.folderId || 'none'
-		});
-
 		const availableNotes = $notes.filter((note) => {
 			if (currentNote.folderId) {
 				return note.folderId === currentNote.folderId;
@@ -308,21 +270,10 @@
 			}
 		});
 
-		console.log(
-			'Available notes for navigation:',
-			availableNotes.map((n) => ({ title: n.title, folderId: n.folderId }))
-		);
-
-		if (availableNotes.length <= 1) {
-			console.log('Not enough notes to navigate');
-			return;
-		}
+		if (availableNotes.length <= 1) return;
 
 		const currentIndex = availableNotes.findIndex((note) => note.id === currentNote.id);
-		if (currentIndex === -1) {
-			console.log('Current note not found in available notes');
-			return;
-		}
+		if (currentIndex === -1) return;
 
 		let newIndex;
 		if (direction === 'next') {
@@ -331,7 +282,6 @@
 			newIndex = currentIndex === 0 ? availableNotes.length - 1 : currentIndex - 1;
 		}
 
-		console.log('Navigating from index', currentIndex, 'to', newIndex);
 		openNote(availableNotes[newIndex]);
 	}
 

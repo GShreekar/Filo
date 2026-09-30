@@ -378,15 +378,43 @@
 		return $notes.filter((note) => note.folderId === folderId);
 	}
 
-	function getTotalNotesInFolderTree(folderId: string): number {
-		const directNotes = getNotesInFolder(folderId).length;
-		const subfolders = getSubfolders(folderId);
-		const subfolderNotes = subfolders.reduce(
-			(total, subfolder) => total + getTotalNotesInFolderTree(subfolder.id),
-			0
-		);
-		return directNotes + subfolderNotes;
+	// Recomputed once per notes/folders change rather than recursively
+	// re-filtering the full note/folder lists on every call — the template
+	// below reads this for every visible folder on every render.
+	function computeFolderNoteCounts(
+		allNotes: NoteMeta[],
+		allFolders: FolderType[]
+	): Map<string, number> {
+		const directCounts = new Map<string, number>();
+		for (const note of allNotes) {
+			if (note.folderId === null) continue;
+			directCounts.set(note.folderId, (directCounts.get(note.folderId) ?? 0) + 1);
+		}
+
+		const childrenByParent = new Map<string, FolderType[]>();
+		for (const folder of allFolders) {
+			if (folder.parentId === null) continue;
+			const siblings = childrenByParent.get(folder.parentId) ?? [];
+			siblings.push(folder);
+			childrenByParent.set(folder.parentId, siblings);
+		}
+
+		const totals = new Map<string, number>();
+		function total(folderId: string): number {
+			if (totals.has(folderId)) return totals.get(folderId)!;
+			const direct = directCounts.get(folderId) ?? 0;
+			const children = childrenByParent.get(folderId) ?? [];
+			const sum = direct + children.reduce((acc, child) => acc + total(child.id), 0);
+			totals.set(folderId, sum);
+			return sum;
+		}
+
+		for (const folder of allFolders) total(folder.id);
+
+		return totals;
 	}
+
+	$: folderNoteCounts = computeFolderNoteCounts($notes, $folders);
 
 	function handleSearchKeydown(event: KeyboardEvent) {
 		if (!isSearching || $searchResults.length === 0) return;
@@ -980,11 +1008,11 @@
 				</span>
 
 				<!-- Show notes count -->
-				{#if getTotalNotesInFolderTree(folder.id) > 0}
+				{#if (folderNoteCounts.get(folder.id) ?? 0) > 0}
 					<span
 						class="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-400"
 					>
-						{getTotalNotesInFolderTree(folder.id)}
+						{folderNoteCounts.get(folder.id) ?? 0}
 					</span>
 				{/if}
 			</button>

@@ -58,7 +58,7 @@ export function searchAll(
 	}
 
 	const parsedQuery = parseSearchQuery(query);
-	const searchTerm = parsedQuery.term.toLowerCase().trim();
+	const searchTerm = parsedQuery.term.trim();
 
 	// A bare "folder:"/"title:"/"content:" with nothing after the colon
 	// leaves an empty term here. Without this check it falls through to
@@ -76,7 +76,7 @@ export function searchAll(
 
 	if (!parsedQuery.titleOnly && !parsedQuery.contentOnly) {
 		for (const folder of allFolders) {
-			const titleMatches = findMatches(folder.name.toLowerCase(), searchTerm);
+			const titleMatches = findMatches(folder.name, searchTerm);
 
 			if (titleMatches.length > 0) {
 				results.push({
@@ -98,12 +98,8 @@ export function searchAll(
 	if (!parsedQuery.folderOnly) {
 		for (const note of allNotes) {
 			const content = parsedQuery.titleOnly ? '' : contentOf(note.id, contentCache);
-			const titleMatches = parsedQuery.contentOnly
-				? []
-				: findMatches(note.title.toLowerCase(), searchTerm);
-			const contentMatches = parsedQuery.titleOnly
-				? []
-				: findMatches(content.toLowerCase(), searchTerm);
+			const titleMatches = parsedQuery.contentOnly ? [] : findMatches(note.title, searchTerm);
+			const contentMatches = parsedQuery.titleOnly ? [] : findMatches(content, searchTerm);
 
 			if (titleMatches.length > 0 || contentMatches.length > 0) {
 				const folder = allFolders.find((f) => f.id === note.folderId);
@@ -198,26 +194,29 @@ export function getRecentNotes(
 		});
 }
 
+function escapeRegExp(text: string): string {
+	return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Matches case-insensitively against the ORIGINAL text (never a lowercased
+// copy) so that start/end indices always line up with the string callers
+// slice from. Lowercasing first and matching there is not just an extra
+// step — case-folding can change string length for some characters (e.g.
+// 'İ'.toLowerCase() is two code units), which silently shifts every match
+// index taken from the lowercased copy out from under the original string.
 function findMatches(text: string, searchTerm: string): MatchRange[] {
-	// An empty needle matches at every index; without this guard the loop
-	// below would produce one MatchRange per character of text instead of
-	// no matches. Belt-and-suspenders alongside the searchAll()-level check.
 	if (!searchTerm) return [];
 
+	const regex = new RegExp(escapeRegExp(searchTerm), 'gi');
 	const matches: MatchRange[] = [];
-	let index = 0;
+	let match: RegExpExecArray | null;
 
-	while (index < text.length) {
-		const found = text.indexOf(searchTerm, index);
-		if (found === -1) break;
-
+	while ((match = regex.exec(text)) !== null) {
 		matches.push({
-			start: found,
-			end: found + searchTerm.length,
-			text: text.substring(found, found + searchTerm.length)
+			start: match.index,
+			end: match.index + match[0].length,
+			text: match[0]
 		});
-
-		index = found + 1;
 	}
 
 	return matches;
@@ -264,8 +263,10 @@ function generateExcerpt(
 	}
 
 	const firstMatch = matches[0];
-	const start = Math.max(0, firstMatch.start - 50);
-	const end = Math.min(content.length, firstMatch.end + 100);
+	const contextBefore = Math.floor(maxLength / 3);
+	const contextAfter = maxLength - contextBefore;
+	const start = Math.max(0, firstMatch.start - contextBefore);
+	const end = Math.min(content.length, firstMatch.end + contextAfter);
 
 	let excerpt = content.substring(start, end);
 
