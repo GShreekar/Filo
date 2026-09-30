@@ -43,56 +43,6 @@ function contentOf(noteId: string, cache: Map<string, string>): string {
 	return cache.get(noteId) ?? '';
 }
 
-export function searchNotes(
-	query: string,
-	contentCache: Map<string, string> = get(noteContentCache)
-): EnhancedSearchResult[] {
-	const allNotes = get(notes);
-	const allFolders = get(folders);
-
-	if (!query.trim()) {
-		return getRecentNotes(allNotes, allFolders, contentCache);
-	}
-
-	const searchTerm = query.toLowerCase().trim();
-	const results: EnhancedSearchResult[] = [];
-
-	for (const note of allNotes) {
-		const content = contentOf(note.id, contentCache);
-		const titleMatches = findMatches(note.title.toLowerCase(), searchTerm);
-		const contentMatches = findMatches(content.toLowerCase(), searchTerm);
-
-		if (titleMatches.length > 0 || contentMatches.length > 0) {
-			const folder = allFolders.find((f) => f.id === note.folderId);
-			const matchType =
-				titleMatches.length > 0 && contentMatches.length > 0
-					? 'both'
-					: titleMatches.length > 0
-						? 'title'
-						: 'content';
-
-			results.push({
-				note,
-				folder: folder ? { id: folder.id, name: getFolderPath(folder.id, allFolders) } : null,
-				score: calculateScore(titleMatches, contentMatches, note.title, note.updatedAt),
-				matchType,
-				titleMatches: titleMatches.map((match) => ({
-					...match,
-					text: note.title.substring(match.start, match.end)
-				})),
-				contentMatches: contentMatches.map((match) => ({
-					...match,
-					text: content.substring(match.start, match.end)
-				})),
-				excerpt: generateExcerpt(content, contentMatches, searchTerm),
-				lastModified: note.updatedAt
-			});
-		}
-	}
-
-	return results.sort((a, b) => b.score - a.score);
-}
-
 export function searchAll(
 	query: string,
 	contentCache: Map<string, string> = get(noteContentCache)

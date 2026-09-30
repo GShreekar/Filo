@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { shortcuts } from '$lib/keyboard-shortcuts';
+	import { shortcuts, type KeyboardShortcut } from '$lib/keyboard-shortcuts';
 	import { X } from 'lucide-svelte';
 	import { trapFocus } from '$lib/focus-trap';
 
@@ -19,7 +19,7 @@
 		}
 	}
 
-	function getKeyDisplay(shortcut: any) {
+	function getKeyDisplay(shortcut: KeyboardShortcut) {
 		const parts = [];
 		if (shortcut.ctrlKey || shortcut.metaKey) {
 			parts.push(navigator.platform.includes('Mac') ? '⌘' : 'Ctrl');

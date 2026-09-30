@@ -1,25 +1,14 @@
 import MarkdownIt from 'markdown-it';
-// @ts-ignore
 import markdownItKatex from '@traptitech/markdown-it-katex';
-// @ts-ignore
 import markdownItTable from 'markdown-it-multimd-table';
-// @ts-ignore
 import markdownItTaskLists from 'markdown-it-task-lists';
-// @ts-ignore
 import markdownItDeflist from 'markdown-it-deflist';
-// @ts-ignore
 import markdownItSub from 'markdown-it-sub';
-// @ts-ignore
 import markdownItSup from 'markdown-it-sup';
-// @ts-ignore
 import markdownItAbbr from 'markdown-it-abbr';
-// @ts-ignore
 import markdownItHighlightjs from 'markdown-it-highlightjs';
-// @ts-ignore
 import markdownItAttrs from 'markdown-it-attrs';
-// @ts-ignore
 import markdownItMark from 'markdown-it-mark';
-// @ts-ignore
 import markdownItFootnote from 'markdown-it-footnote';
 
 import hljs from 'highlight.js';

@@ -54,7 +54,7 @@
 	let searchContextMenuX = 0;
 	let searchContextMenuY = 0;
 	let searchContextMenuType: 'folder' | 'note' = 'folder';
-	let searchContextMenuTarget: any = null;
+	let searchContextMenuTarget: FolderType | NoteMeta | null = null;
 
 	let longPressTimer: NodeJS.Timeout | null = null;
 	let touchStartTime = 0;
@@ -453,7 +453,11 @@
 		}
 	}
 
-	function showSearchContextMenu(event: MouseEvent, type: 'folder' | 'note', target: any) {
+	function showSearchContextMenu(
+		event: MouseEvent,
+		type: 'folder' | 'note',
+		target: FolderType | NoteMeta
+	) {
 		if (!target) return;
 		event.preventDefault();
 		event.stopPropagation();
@@ -482,9 +486,9 @@
 
 	async function handleSearchRename() {
 		if (!searchContextMenuTarget) return;
-
-		const isFolder = searchContextMenuType === 'folder';
-		const currentName = isFolder ? searchContextMenuTarget.name : searchContextMenuTarget.title;
+		const target = searchContextMenuTarget;
+		const isFolder = 'name' in target;
+		const currentName = isFolder ? target.name : target.title;
 
 		inputModal.set({
 			visible: true,
@@ -493,10 +497,10 @@
 			value: currentName,
 			onConfirm: async (newName: string) => {
 				try {
-					if (isFolder) {
-						await updateFolder(searchContextMenuTarget.id, newName);
+					if ('name' in target) {
+						await updateFolder(target.id, newName);
 					} else {
-						await updateNote(searchContextMenuTarget.id, { title: newName });
+						await updateNote(target.id, { title: newName });
 					}
 					inputModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {
@@ -508,9 +512,9 @@
 
 	async function handleSearchDelete() {
 		if (!searchContextMenuTarget) return;
-
-		const isFolder = searchContextMenuType === 'folder';
-		const name = isFolder ? searchContextMenuTarget.name : searchContextMenuTarget.title;
+		const target = searchContextMenuTarget;
+		const isFolder = 'name' in target;
+		const name = isFolder ? target.name : target.title;
 
 		confirmModal.set({
 			visible: true,
@@ -518,10 +522,10 @@
 			message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
 			onConfirm: async () => {
 				try {
-					if (isFolder) {
-						await deleteFolder(searchContextMenuTarget.id);
+					if ('name' in target) {
+						await deleteFolder(target.id);
 					} else {
-						await deleteNote(searchContextMenuTarget.id);
+						await deleteNote(target.id);
 					}
 					confirmModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {

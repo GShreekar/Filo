@@ -1,5 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import {
+	initializeFirestore,
+	persistentLocalCache,
+	persistentMultipleTabManager
+} from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 
@@ -14,7 +18,16 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
+// Persists Firestore's own write queue and read cache to IndexedDB, so a
+// write made while offline survives even a closed tab and syncs once
+// reconnected — auto-save.ts used to hand-roll a much weaker version of
+// this (an in-memory retry timer, lost on refresh) instead of relying on
+// what the SDK already does. persistentMultipleTabManager coordinates that
+// cache across however many tabs of the app happen to be open, rather than
+// silently falling back to memory-only in every tab after the first.
+export const db = initializeFirestore(app, {
+	localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 export const auth = getAuth(app);
 export const functions = getFunctions(app);
 

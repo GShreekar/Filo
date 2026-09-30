@@ -62,28 +62,32 @@ mark {
 	line-height: 1.75rem;
 }
 
-.prose code {
-	background-color: rgb(243 244 246);
-	padding: 0.125rem 0.25rem;
-	border-radius: 0.25rem;
-	font-size: 0.875rem;
-}
-
-.dark .prose code {
-	background-color: rgb(31 41 55);
-}
+/* .prose code (inline code) is styled below by .prose code:not(pre code),
+   which is more specific than a plain .prose code selector could ever be —
+   a bare `.prose code { ... }` rule here would never actually render
+   (always shadowed by that or by .prose pre code for code inside a block),
+   so it isn't repeated as dead weight. */
 
 .prose pre {
-	background-color: rgb(17 24 39);
+	background-color: #1f2937;
 	color: rgb(243 244 246);
+	border: 1px solid rgb(55 65 81);
 	padding: 1rem;
 	border-radius: 0.5rem;
 	overflow-x: auto;
 }
 
+.dark .prose pre {
+	background-color: #0d1117;
+	border-color: rgb(75 85 99);
+}
+
 .prose pre code {
 	background-color: transparent;
+	color: inherit;
 	padding: 0;
+	border-radius: 0;
+	font-size: inherit;
 }
 
 .prose blockquote {
@@ -96,30 +100,47 @@ mark {
 	border-left-color: rgb(75 85 99);
 }
 
+/* Table cells: .prose table th/td below is more specific than a plain
+   .prose th/.prose td selector, so — same reasoning as .prose code above —
+   an unqualified version here would never win against it and isn't kept. */
+
 .prose table {
+	display: block;
 	width: 100%;
+	overflow-x: auto;
+	white-space: nowrap;
 	border-collapse: collapse;
+	border-spacing: 0;
+	margin: 1.5rem 0;
+	font-size: 0.875rem;
 }
 
-.prose th,
-.prose td {
-	border: 1px solid rgb(209 213 219);
+.prose table th,
+.prose table td {
+	min-width: 100px;
 	padding: 0.75rem;
 	text-align: left;
+	border: 1px solid #e5e7eb;
+	white-space: pre-wrap;
 }
 
-.dark .prose th,
-.dark .prose td {
-	border-color: rgb(75 85 99);
+.prose table td {
+	vertical-align: top;
 }
 
-.prose th {
-	background-color: rgb(249 250 251);
+.dark .prose table th,
+.dark .prose table td {
+	border-color: #4b5563;
+}
+
+.prose table th {
+	background-color: #f9fafb;
 	font-weight: 600;
 }
 
-.dark .prose th {
-	background-color: rgb(31 41 55);
+.dark .prose table th {
+	background-color: #374151;
+	color: #f9fafb;
 }
 
 .prose img {
@@ -142,14 +163,15 @@ mark {
 }
 
 .prose mark {
-	background-color: rgb(254 240 138);
-	padding-left: 0.25rem;
-	padding-right: 0.25rem;
-	border-radius: 0.25rem;
+	background-color: #fef08a;
+	color: #78350f;
+	padding: 0.125rem 0.25rem;
+	border-radius: 0.125rem;
 }
 
 .dark .prose mark {
-	background-color: rgb(133 77 14);
+	background-color: #ca8a04;
+	color: #fefce8;
 }
 
 ::-webkit-scrollbar {
@@ -188,10 +210,6 @@ body {
 	margin: 0;
 	padding: 0;
 	overflow: hidden;
-}
-
-#app {
-	height: 100%;
 }
 
 @keyframes slide-in-from-right {
@@ -253,163 +271,18 @@ body {
 }
 
 .prose .task-list-item {
-	list-style: none;
+	list-style: none !important;
+	position: relative;
 	margin: 0.25rem 0;
+	padding-left: 0 !important;
+	margin-left: 0 !important;
+	border: none;
+	background: none;
 }
 
 .prose .task-list-item-checkbox {
 	margin-right: 0.5rem;
 	margin-top: 0.125rem;
-}
-
-.prose dt {
-	font-weight: 600;
-	margin-top: 1rem;
-	margin-bottom: 0.25rem;
-}
-
-.prose dd {
-	margin-left: 1.5rem;
-	margin-bottom: 0.5rem;
-	padding-left: 0.5rem;
-	border-left: 2px solid rgb(229 231 235);
-}
-
-.dark .prose dd {
-	border-left-color: rgb(75 85 99);
-}
-
-.math-display {
-	margin: 1rem 0;
-	text-align: center;
-}
-
-.math-display svg {
-	max-width: 100%;
-	height: auto;
-}
-
-.prose pre {
-	background-color: #0d1117 !important;
-	border: 1px solid rgb(55 65 81);
-	border-radius: 0.5rem;
-	overflow-x: auto;
-}
-
-.dark .prose pre {
-	background-color: #0d1117 !important;
-	border-color: rgb(75 85 99);
-}
-
-.prose code {
-	background-color: rgb(243 244 246);
-	color: rgb(239 68 68);
-	padding: 0.125rem 0.25rem;
-	border-radius: 0.25rem;
-	font-size: 0.875em;
-}
-
-.dark .prose code {
-	background-color: rgb(55 65 81);
-	color: rgb(248 113 113);
-}
-
-.prose pre code {
-	background-color: transparent;
-	color: inherit;
-	padding: 0;
-	border-radius: 0;
-	font-size: inherit;
-}
-
-.prose table {
-	display: block;
-	width: 100%;
-	overflow-x: auto;
-	white-space: nowrap;
-	border-collapse: collapse;
-	border-spacing: 0;
-}
-
-.prose table th,
-.prose table td {
-	min-width: 100px;
-	padding: 0.75rem;
-	text-align: left;
-	border: 1px solid rgb(209 213 219);
-	white-space: pre-wrap;
-}
-
-.dark .prose table th,
-.dark .prose table td {
-	border-color: rgb(75 85 99);
-}
-
-.prose table th {
-	background-color: rgb(249 250 251);
-	font-weight: 600;
-}
-
-.dark .prose table th {
-	background-color: rgb(31 41 55);
-}
-
-.prose s,
-.prose del {
-	text-decoration: line-through;
-	opacity: 0.7;
-}
-
-.prose mark {
-	background-color: rgb(254 240 138);
-	color: rgb(92 66 16);
-	padding: 0.125rem 0.25rem;
-	border-radius: 0.25rem;
-}
-
-.dark .prose mark {
-	background-color: rgb(217 119 6);
-	color: rgb(254 252 232);
-}
-
-.prose sub,
-.prose sup {
-	font-size: 0.75em;
-	line-height: 0;
-	position: relative;
-	vertical-align: baseline;
-}
-
-.prose sup {
-	top: -0.5em;
-}
-
-.prose sub {
-	bottom: -0.25em;
-}
-
-.prose img[alt$='small'] {
-	max-width: 300px;
-}
-
-.prose img[alt$='medium'] {
-	max-width: 500px;
-}
-
-.prose img[alt$='large'] {
-	max-width: 100%;
-}
-
-.prose abbr {
-	text-decoration: underline dotted;
-	cursor: help;
-}
-
-.prose .task-list-item {
-	list-style: none !important;
-	position: relative;
-	padding-left: 0 !important;
-	margin-left: 0 !important;
 }
 
 .prose .task-list-item input[type='checkbox'] {
@@ -432,11 +305,6 @@ body {
 	margin: 0;
 }
 
-.prose .task-list-item {
-	border: none;
-	background: none;
-}
-
 .prose ul.contains-task-list {
 	list-style: none;
 	padding-left: 0;
@@ -444,6 +312,26 @@ body {
 
 .prose ul.contains-task-list li {
 	list-style: none !important;
+}
+
+.prose dt {
+	font-weight: 600;
+	margin-top: 1rem;
+	margin-bottom: 0.25rem;
+	color: var(--tw-prose-headings);
+}
+
+.prose dd {
+	margin-top: 0.25rem;
+	margin-bottom: 0.5rem;
+	margin-left: 1.5rem;
+	padding-left: 0.5rem;
+	border-left: 2px solid rgb(229 231 235);
+	color: var(--tw-prose-body);
+}
+
+.dark .prose dd {
+	border-left-color: rgb(75 85 99);
 }
 
 .prose ul {
@@ -486,48 +374,27 @@ body {
 	list-style-type: square;
 }
 
-.prose table {
-	border-collapse: collapse;
-	border-spacing: 0;
-	width: 100%;
-	margin: 1.5rem 0;
-	font-size: 0.875rem;
+.prose s,
+.prose del {
+	text-decoration: line-through;
+	opacity: 0.7;
 }
 
-.prose table th {
-	background-color: #f9fafb;
-	font-weight: 600;
-	text-align: left;
-	padding: 0.75rem;
-	border: 1px solid #e5e7eb;
+.prose img[alt$='small'] {
+	max-width: 300px;
 }
 
-.prose table td {
-	padding: 0.75rem;
-	border: 1px solid #e5e7eb;
-	vertical-align: top;
+.prose img[alt$='medium'] {
+	max-width: 500px;
 }
 
-.dark .prose table th {
-	background-color: #374151;
-	border-color: #4b5563;
-	color: #f9fafb;
+.prose img[alt$='large'] {
+	max-width: 100%;
 }
 
-.dark .prose table td {
-	border-color: #4b5563;
-}
-
-.prose dt {
-	font-weight: 600;
-	margin-top: 1rem;
-	color: var(--tw-prose-headings);
-}
-
-.prose dd {
-	margin-left: 1.5rem;
-	margin-top: 0.25rem;
-	color: var(--tw-prose-body);
+.prose abbr {
+	text-decoration: underline dotted;
+	cursor: help;
 }
 
 .prose sub,
@@ -546,93 +413,14 @@ body {
 	bottom: -0.25em;
 }
 
-.prose .math-display {
-	margin: 1.5rem 0;
-	text-align: center;
-	overflow-x: auto;
-	overflow-y: hidden;
-	display: block !important;
-	width: 100%;
-}
-
-.prose .math-display .MathJax {
-	display: block !important;
-	text-align: center;
-	margin: 0 auto;
-}
-
-.prose .math-display mjx-container {
-	display: block !important;
-	text-align: center;
-	margin: 0 auto;
-}
-
-.prose .math-display mjx-math {
-	display: inline-block !important;
-}
-
-.prose .math-display mjx-mrow {
-	display: inline !important;
-}
-
-.prose .math-display mjx-mtable {
-	display: inline-table !important;
-	vertical-align: middle;
-	min-width: auto !important;
-	width: auto !important;
-}
-
-.prose .math-display mjx-mtr {
-	display: table-row !important;
-	height: auto !important;
-	min-height: 1.2em !important;
-}
-
-.prose .math-display mjx-mtd {
-	display: table-cell !important;
-	padding: 0.4em 0.6em !important;
-	text-align: center;
-	vertical-align: middle;
-	white-space: nowrap;
-	min-width: 1.5em;
-}
-
-.prose .math-display mjx-mo[data-semantic-type='fence'] {
-	font-size: 1.2em !important;
-	vertical-align: middle;
-}
-
-.prose .math-display mjx-mrow mjx-mtable {
-	display: inline-table !important;
-	vertical-align: middle;
-	margin: 0 0.2em;
-}
-
-.prose .math-display mjx-stretchy-v {
-	display: inline-flex !important;
-	align-items: center;
-	min-height: 2.5em !important;
-}
-
-.prose .math-display mjx-stretchy-v mjx-c {
-	transform-origin: center;
-}
-
-.prose .math-display mjx-mtable mjx-mtr mjx-mtd {
-	line-height: 1.4 !important;
-	padding: 0.3em 0.5em !important;
-}
-
-.prose .math-inline {
-	display: inline !important;
-}
-
-.prose .math-inline .MathJax {
-	display: inline !important;
-	vertical-align: middle;
-}
-
-.prose .math-error {
+/* KaTeX renders a rendering error as <span class="katex-error">, not
+   "math-error" — this was targeting a class name the pipeline never
+   actually produces (a leftover from the same abandoned MathJax-era styling
+   as the dead selectors removed above), so the intended error styling
+   (background box, monospace) never applied; corrected rather than
+   dropped, since it's otherwise a reasonable design that was just never
+   wired up. */
+.katex-error {
 	color: #dc2626;
 	background-color: #fef2f2;
 	padding: 0.25rem;
@@ -641,23 +429,9 @@ body {
 	font-size: 0.875em;
 }
 
-.dark .prose .math-error {
+.dark .katex-error {
 	color: #fca5a5;
 	background-color: #7f1d1d;
-}
-
-.prose pre {
-	background-color: #1f2937 !important;
-	border-radius: 0.5rem;
-	padding: 1rem;
-	overflow-x: auto;
-}
-
-.prose pre code {
-	background-color: transparent !important;
-	padding: 0 !important;
-	border-radius: 0 !important;
-	font-size: 0.875rem;
 }
 
 .prose code:not(pre code) {
@@ -671,24 +445,6 @@ body {
 .dark .prose code:not(pre code) {
 	background-color: #374151;
 	color: #f3f4f6;
-}
-
-.prose del,
-.prose s {
-	text-decoration: line-through;
-	opacity: 0.7;
-}
-
-.prose mark {
-	background-color: #fef08a;
-	color: #78350f;
-	padding: 0.125rem 0.25rem;
-	border-radius: 0.125rem;
-}
-
-.dark .prose mark {
-	background-color: #ca8a04;
-	color: #fefce8;
 }
 
 /* app.css is a plain stylesheet (imported from +layout.svelte), not a Svelte

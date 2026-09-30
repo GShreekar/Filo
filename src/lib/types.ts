@@ -25,9 +25,3 @@ export interface NoteMeta {
 export interface Note extends NoteMeta {
 	content: string;
 }
-
-export interface SearchResult {
-	note: Note;
-	folder: Folder;
-	matchType: 'title' | 'content';
-}

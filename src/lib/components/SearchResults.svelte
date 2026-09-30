@@ -6,6 +6,7 @@
 		EnhancedSearchResult,
 		FolderSearchResult
 	} from '$lib/search-service';
+	import type { Folder as FolderType, NoteMeta } from '$lib/types';
 	import { highlightText, formatTimeAgo } from '$lib/search-service';
 	import ContextMenu from './ContextMenu.svelte';
 	import { updateNote, deleteNote, updateFolder, deleteFolder } from '$lib/firebase-service';
@@ -17,14 +18,14 @@
 
 	const dispatch = createEventDispatcher<{
 		select: { result: EnhancedSearchResult; index: number };
-		selectFolder: { folder: any; index: number };
+		selectFolder: { folder: FolderType; index: number };
 	}>();
 
 	let contextMenuVisible = false;
 	let contextMenuX = 0;
 	let contextMenuY = 0;
 	let contextMenuType: 'folder' | 'note' = 'folder';
-	let contextMenuTarget: any = null;
+	let contextMenuTarget: FolderType | NoteMeta | null = null;
 
 	let longPressTimer: NodeJS.Timeout | null = null;
 	let touchStartTime = 0;
@@ -122,7 +123,11 @@
 		return 'Recent note';
 	}
 
-	function showContextMenu(event: MouseEvent, type: 'folder' | 'note', target: any) {
+	function showContextMenu(
+		event: MouseEvent,
+		type: 'folder' | 'note',
+		target: FolderType | NoteMeta
+	) {
 		if (!target) return;
 		event.preventDefault();
 		event.stopPropagation();
@@ -158,9 +163,9 @@
 
 	async function handleRename() {
 		if (!contextMenuTarget) return;
-
-		const isFolder = contextMenuType === 'folder';
-		const currentName = isFolder ? contextMenuTarget.name : contextMenuTarget.title;
+		const target = contextMenuTarget;
+		const isFolder = 'name' in target;
+		const currentName = isFolder ? target.name : target.title;
 
 		inputModal.set({
 			visible: true,
@@ -169,10 +174,10 @@
 			value: currentName,
 			onConfirm: async (newName: string) => {
 				try {
-					if (isFolder) {
-						await updateFolder(contextMenuTarget.id, newName);
+					if ('name' in target) {
+						await updateFolder(target.id, newName);
 					} else {
-						await updateNote(contextMenuTarget.id, { title: newName });
+						await updateNote(target.id, { title: newName });
 					}
 					inputModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {
@@ -184,9 +189,9 @@
 
 	async function handleDelete() {
 		if (!contextMenuTarget) return;
-
-		const isFolder = contextMenuType === 'folder';
-		const name = isFolder ? contextMenuTarget.name : contextMenuTarget.title;
+		const target = contextMenuTarget;
+		const isFolder = 'name' in target;
+		const name = isFolder ? target.name : target.title;
 
 		confirmModal.set({
 			visible: true,
@@ -194,10 +199,10 @@
 			message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
 			onConfirm: async () => {
 				try {
-					if (isFolder) {
-						await deleteFolder(contextMenuTarget.id);
+					if ('name' in target) {
+						await deleteFolder(target.id);
 					} else {
-						await deleteNote(contextMenuTarget.id);
+						await deleteNote(target.id);
 					}
 					confirmModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {
@@ -270,7 +275,9 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-700 {isMobile
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100'}"
 								on:click={(e) => {
 									e.stopPropagation();
 									result.folderResult && showContextMenu(e, 'folder', result.folderResult!.folder);
@@ -348,7 +355,9 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									showContextMenu(e, 'note', result.noteResult!.note);
@@ -418,7 +427,9 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									showContextMenu(e, 'note', result.noteResult!.note);
@@ -493,7 +504,9 @@
 							</button>
 							<!-- Context menu trigger button -->
 							<button
-								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
+								class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile
+									? 'opacity-100'
+									: 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 								on:click={(e) => {
 									e.stopPropagation();
 									showContextMenu(e, 'note', result.noteResult!.note);
@@ -555,7 +568,9 @@
 						</button>
 						<!-- Context menu trigger button -->
 						<button
-							class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
+							class="absolute top-2 right-2 rounded p-1 transition-opacity hover:bg-gray-200 {isMobile
+								? 'opacity-100'
+								: 'opacity-0 group-hover:opacity-100'} dark:hover:bg-gray-700"
 							on:click={(e) => {
 								e.stopPropagation();
 								showContextMenu(e, 'note', result.noteResult!.note);

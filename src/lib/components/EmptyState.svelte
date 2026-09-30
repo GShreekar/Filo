@@ -1,13 +1,16 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
+	import { createEventDispatcher, type ComponentType, type SvelteComponent } from 'svelte';
 
-	export let icon: any = null;
+	// Icon components (e.g. lucide-svelte's Plus, FolderOpen, ...) rendered
+	// via <svelte:component this={...}> below — any Svelte component works,
+	// hence the generic bound rather than a specific icon's own type.
+	export let icon: ComponentType<SvelteComponent> | null = null;
 	export let title: string = '';
 	export let description: string = '';
 	export let actionText: string = '';
-	export let actionIcon: any = null;
+	export let actionIcon: ComponentType<SvelteComponent> | null = null;
 	export let secondaryActionText: string = '';
-	export let secondaryActionIcon: any = null;
+	export let secondaryActionIcon: ComponentType<SvelteComponent> | null = null;
 	export let showKeyboardHint: boolean = false;
 	export let keyboardHint: string = '';
 

@@ -30,6 +30,8 @@
 	import { createNote, createFolder } from '$lib/firebase-service';
 	import { openNote } from '$lib/note-selection';
 	import { searchAll } from '$lib/search-service';
+	import type { EnhancedSearchResult } from '$lib/search-service';
+	import type { Folder as FolderType } from '$lib/types';
 	import SearchResults from './SearchResults.svelte';
 
 	export let searchInput: HTMLInputElement | undefined = undefined;
@@ -143,26 +145,26 @@
 		} else if (event.key === 'Enter') {
 			event.preventDefault();
 			if ($selectedSearchIndex >= 0 && $selectedSearchIndex < $searchResults.length) {
-				selectSearchResult($searchResults[$selectedSearchIndex], $selectedSearchIndex);
+				const result = $searchResults[$selectedSearchIndex];
+				if (result.type === 'note' && result.noteResult) {
+					selectSearchResult(result.noteResult, $selectedSearchIndex);
+				} else if (result.type === 'folder' && result.folderResult) {
+					selectFolder(result.folderResult.folder, $selectedSearchIndex);
+				}
 			}
 		}
 	}
 
-	function selectSearchResult(result: any, index: number) {
-		// Folder results arrive through the separate 'selectFolder' event
-		// below, not through this one — SearchResults.svelte only ever
-		// dispatches 'select' for notes.
-		if (result.type === 'note' && result.noteResult) {
-			openNote(result.noteResult.note);
-			if (typeof window !== 'undefined' && window.innerWidth < 768) {
-				sidebarCollapsed.set(true);
-			}
+	function selectSearchResult(result: EnhancedSearchResult, index: number) {
+		openNote(result.note);
+		if (typeof window !== 'undefined' && window.innerWidth < 768) {
+			sidebarCollapsed.set(true);
 		}
 		showSearchResults.set(false);
 		searchInput?.blur();
 	}
 
-	function selectFolder(folder: any, index: number) {
+	function selectFolder(folder: FolderType, index: number) {
 		// Sidebar reacts to selectedFolder by expanding this folder's
 		// ancestor chain and highlighting it, so it's actually visible in
 		// the tree rather than just closing the dropdown with nothing to

@@ -33,17 +33,6 @@ declare module 'markdown-it-abbr' {
 	export = plugin;
 }
 
-declare module 'markdown-it-texmath' {
-	import MarkdownIt from 'markdown-it';
-	interface TexmathOptions {
-		engine?: any;
-		delimiters?: string;
-		katexOptions?: any;
-	}
-	const plugin: MarkdownIt.PluginWithOptions<TexmathOptions>;
-	export = plugin;
-}
-
 declare module 'markdown-it-attrs' {
 	import MarkdownIt from 'markdown-it';
 	const plugin: MarkdownIt.PluginSimple;
@@ -51,6 +40,12 @@ declare module 'markdown-it-attrs' {
 }
 
 declare module 'markdown-it-mark' {
+	import MarkdownIt from 'markdown-it';
+	const plugin: MarkdownIt.PluginSimple;
+	export = plugin;
+}
+
+declare module 'markdown-it-footnote' {
 	import MarkdownIt from 'markdown-it';
 	const plugin: MarkdownIt.PluginSimple;
 	export = plugin;
@@ -76,20 +71,4 @@ declare module 'markdown-it-multimd-table' {
 	}
 	const plugin: MarkdownIt.PluginWithOptions<MultimdTableOptions>;
 	export = plugin;
-}
-
-declare global {
-	interface Window {
-		MathJax: {
-			tex?: any;
-			svg?: any;
-			startup?: {
-				defaultReady: () => void;
-			};
-			typesetPromise?: () => Promise<void>;
-			Hub?: {
-				Queue: (args: any[]) => void;
-			};
-		};
-	}
 }

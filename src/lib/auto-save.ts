@@ -10,7 +10,6 @@ interface AutoSaveState {
 	titleDirty: boolean;
 	lastSaved: Date | null;
 	isSaving: boolean;
-	retryCount: number;
 }
 
 export const autoSaveState = writable<AutoSaveState>({
@@ -20,51 +19,30 @@ export const autoSaveState = writable<AutoSaveState>({
 	contentDirty: false,
 	titleDirty: false,
 	lastSaved: null,
-	isSaving: false,
-	retryCount: 0
+	isSaving: false
 });
 
 let debounceTimer: NodeJS.Timeout;
 let titleDebounceTimer: NodeJS.Timeout;
-let retryTimer: NodeJS.Timeout | null = null;
 
-const MAX_RETRY_ATTEMPTS = 5;
-const BASE_RETRY_DELAY = 1000;
-
-let isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
-
-if (typeof window !== 'undefined') {
-	window.addEventListener('online', handleNetworkOnline);
-	window.addEventListener('offline', handleNetworkOffline);
-}
-
-function handleNetworkOffline() {
-	isOnline = false;
-	console.log('Network went offline');
-}
-
-function handleNetworkOnline() {
-	isOnline = true;
-	console.log('Network came back online');
-
-	const state = get(autoSaveState);
-	if (state.isSaving && state.noteId && (state.contentDirty || state.titleDirty)) {
-		console.log('Network restored, retrying pending save');
-		autoSaveState.update((s) => ({ ...s, retryCount: 0 }));
-		performSave(state.noteId, true).catch(() => {
-			// Error handling is done in performSave
-		});
-	}
-}
-
+// There used to be a hand-rolled exponential-backoff retry queue and
+// online/offline listeners here, duplicating what the Firestore SDK already
+// does on its own once persistent local cache is enabled (see db in
+// firebase.ts): a write made while offline is queued in IndexedDB and
+// resolves once the server acks it after reconnecting — durably, surviving
+// even a closed tab, which the old in-memory retryTimer never did. A write
+// call's promise only actually rejects now for a genuine, non-transient
+// failure (a rules rejection, bad data), which retrying automatically would
+// never fix anyway — so the catch block below just surfaces it once instead
+// of retrying blindly.
 async function performSave(noteId: string, silent: boolean = false): Promise<void> {
 	if (!silent) {
-		autoSaveState.update((state) => ({ ...state, isSaving: true, retryCount: 0 }));
+		autoSaveState.update((state) => ({ ...state, isSaving: true }));
 	}
 
 	try {
 		const state = get(autoSaveState);
-		const update: any = {};
+		const update: Partial<{ content: string; title: string }> = {};
 
 		if (state.contentDirty) update.content = state.content;
 		if (state.titleDirty) update.title = state.title;
@@ -78,44 +56,13 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 			contentDirty: false,
 			titleDirty: false,
 			lastSaved: new Date(),
-			isSaving: false,
-			retryCount: 0
+			isSaving: false
 		}));
 	} catch (error) {
 		console.error('Save failed:', error);
-
-		const state = get(autoSaveState);
-
-		if (state.retryCount >= MAX_RETRY_ATTEMPTS) {
-			autoSaveState.update((s) => ({ ...s, isSaving: false, retryCount: 0 }));
-			showError(
-				'Failed to save changes after multiple attempts. Please check your connection and try again.',
-				'error'
-			);
-			throw error;
-		}
-
-		const retryDelay = BASE_RETRY_DELAY * Math.pow(2, state.retryCount);
-		autoSaveState.update((s) => ({ ...s, retryCount: s.retryCount + 1 }));
-
-		console.log(
-			`Retrying save in ${retryDelay}ms (attempt ${state.retryCount + 1}/${MAX_RETRY_ATTEMPTS})`
-		);
-
-		if (retryTimer) clearTimeout(retryTimer);
-		retryTimer = setTimeout(async () => {
-			const currentState = get(autoSaveState);
-			if (
-				currentState.noteId === noteId &&
-				(currentState.contentDirty || currentState.titleDirty)
-			) {
-				try {
-					await performSave(noteId, true);
-				} catch (retryError) {
-					// Error handling is already done in performSave
-				}
-			}
-		}, retryDelay);
+		autoSaveState.update((s) => ({ ...s, isSaving: false }));
+		showError('Failed to save changes. Please try again.', 'error');
+		throw error;
 	}
 }
 
@@ -180,7 +127,6 @@ export async function saveCurrentNoteIfDirty(noteId: string, content?: string): 
 export function clearAutoSaveState() {
 	clearTimeout(debounceTimer);
 	clearTimeout(titleDebounceTimer);
-	if (retryTimer) clearTimeout(retryTimer);
 
 	autoSaveState.set({
 		noteId: null,
@@ -189,8 +135,7 @@ export function clearAutoSaveState() {
 		contentDirty: false,
 		titleDirty: false,
 		lastSaved: null,
-		isSaving: false,
-		retryCount: 0
+		isSaving: false
 	});
 }
 
@@ -210,8 +155,7 @@ export async function setInitialNoteState(noteId: string, content: string, title
 		contentDirty: false,
 		titleDirty: false,
 		lastSaved: null,
-		isSaving: false,
-		retryCount: 0
+		isSaving: false
 	});
 }
 
