@@ -14,6 +14,7 @@
 		exportModal,
 		importModal,
 		helpModal,
+		commandPalette,
 		editorActions,
 		selectedFolder,
 		searchQuery
@@ -30,11 +31,38 @@
 	import MainEditor from '$lib/components/MainEditor.svelte';
 	import TabSlider from '$lib/components/TabSlider.svelte';
 	import HelpModal from '$lib/components/HelpModal.svelte';
+	import CommandPalette, { type PaletteCommand } from '$lib/components/CommandPalette.svelte';
 	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import InputModal from '$lib/components/InputModal.svelte';
 	import ExportModal from '$lib/components/ExportModal.svelte';
 	import ImportModal from '$lib/components/ImportModal.svelte';
 	import ErrorToast from '$lib/components/ErrorToast.svelte';
+
+	// The command palette's contents: every action handleGlobalShortcut() can
+	// actually execute, whether or not it also has a key binding — the palette
+	// is "mostly UI over" that existing dispatch table, not a second one.
+	const GLOBAL_ACTIONS = [
+		'new-note',
+		'new-folder',
+		'save',
+		'search',
+		'toggle-sidebar',
+		'previous-note',
+		'next-note',
+		'delete-note',
+		'rename-note',
+		'export-note',
+		'import-notes',
+		'show-help',
+		'command-palette'
+	];
+
+	const paletteCommands: PaletteCommand[] = GLOBAL_ACTIONS.filter(
+		(action) => action !== 'command-palette'
+	).map((action) => {
+		const shortcut = shortcuts.find((s) => s.action === action);
+		return { action, description: shortcut?.description ?? action, shortcut };
+	});
 
 	let searchInput: HTMLInputElement;
 	let editorContainer: HTMLElement;
@@ -203,6 +231,9 @@
 			case 'show-help':
 				showHelpModal();
 				break;
+			case 'command-palette':
+				showCommandPalette();
+				break;
 		}
 	}
 
@@ -216,22 +247,7 @@
 		for (const shortcut of shortcuts) {
 			if (!matchesShortcut(event, shortcut)) continue;
 
-			if (
-				[
-					'new-note',
-					'new-folder',
-					'save',
-					'search',
-					'toggle-sidebar',
-					'previous-note',
-					'next-note',
-					'delete-note',
-					'rename-note',
-					'export-note',
-					'import-notes',
-					'show-help'
-				].includes(shortcut.action)
-			) {
+			if (GLOBAL_ACTIONS.includes(shortcut.action)) {
 				event.preventDefault();
 				handleGlobalShortcut(shortcut.action);
 			}
@@ -334,6 +350,12 @@
 			visible: true
 		});
 	}
+
+	function showCommandPalette() {
+		commandPalette.set({
+			visible: true
+		});
+	}
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -416,6 +438,12 @@
 	     component's own internal `visible = false` on close writes straight
 	     back to the store — no other component should mount these. -->
 	<HelpModal bind:visible={$helpModal.visible} on:close={() => helpModal.set({ visible: false })} />
+	<CommandPalette
+		bind:visible={$commandPalette.visible}
+		commands={paletteCommands}
+		on:execute={(e) => handleGlobalShortcut(e.detail)}
+		on:close={() => commandPalette.set({ visible: false })}
+	/>
 	<ConfirmModal
 		bind:visible={$confirmModal.visible}
 		title={$confirmModal.title}

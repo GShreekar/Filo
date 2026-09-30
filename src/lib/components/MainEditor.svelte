@@ -27,6 +27,7 @@
 	import { createNote, subscribeNoteContent } from '$lib/firebase-service';
 	import { openNote } from '$lib/note-selection';
 	import { showError } from '$lib/error-store';
+	import { computeTextStats, formatReadingTime } from '$lib/text-stats';
 	import MarkdownEditor from './MarkdownEditor.svelte';
 	import MarkdownPreview from './MarkdownPreview.svelte';
 	import TabSlider from './TabSlider.svelte';
@@ -92,6 +93,8 @@
 			}
 		}
 	}
+
+	$: textStats = computeTextStats(content);
 
 	$: if ($editorActions.action === 'rename-title' && $selectedNote) {
 		startEditingTitle();
@@ -543,6 +546,15 @@
 				</div>
 			{/if}
 		</div>
+
+		<div
+			class="flex flex-shrink-0 items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-1 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+		>
+			<span>{textStats.words} {textStats.words === 1 ? 'word' : 'words'}</span>
+			<span>{textStats.characters} {textStats.characters === 1 ? 'character' : 'characters'}</span>
+			<span>{formatReadingTime(textStats.readingTimeMinutes)}</span>
+		</div>
+
 		{#if isMobile}
 			<div class="flex border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800">
 				<button

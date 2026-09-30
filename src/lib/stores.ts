@@ -85,6 +85,12 @@ export const helpModal = writable<{
 	visible: false
 });
 
+export const commandPalette = writable<{
+	visible: boolean;
+}>({
+	visible: false
+});
+
 export const editorActions = writable<{
 	action: string | null;
 	timestamp: number;

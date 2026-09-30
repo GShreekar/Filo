@@ -1,5 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { matchesShortcut, type KeyboardShortcut } from '../src/lib/keyboard-shortcuts';
+import {
+	matchesShortcut,
+	getShortcutDisplay,
+	type KeyboardShortcut
+} from '../src/lib/keyboard-shortcuts';
 
 const bold: KeyboardShortcut = { key: 'b', ctrlKey: true, action: 'bold', description: 'Bold' };
 const codeBlock: KeyboardShortcut = {
@@ -60,5 +64,40 @@ describe('matchesShortcut on Mac', () => {
 		expect(matchesShortcut(keyEvent({ key: 'e', metaKey: true, shiftKey: true }), codeBlock)).toBe(
 			true
 		);
+	});
+});
+
+describe('getShortcutDisplay', () => {
+	beforeEach(() => setPlatform('Win32'));
+	afterEach(() => setPlatform('Win32'));
+
+	test('formats modifiers and an uppercased key on Windows/Linux', () => {
+		expect(getShortcutDisplay(bold)).toBe('Ctrl+B');
+		expect(getShortcutDisplay(codeBlock)).toBe('Ctrl+Shift+E');
+	});
+
+	test('shows the Mac primary modifier as ⌘', () => {
+		setPlatform('MacIntel');
+		expect(getShortcutDisplay(bold)).toBe('⌘+B');
+	});
+
+	test('renders arrow keys as arrow symbols, not their event.key names', () => {
+		const previousNote: KeyboardShortcut = {
+			key: 'ArrowLeft',
+			altKey: true,
+			action: 'previous-note',
+			description: 'Previous note'
+		};
+		expect(getShortcutDisplay(previousNote)).toBe('Alt+←');
+	});
+
+	test('leaves a backslash key as-is instead of uppercasing it', () => {
+		const toggleSidebar: KeyboardShortcut = {
+			key: '\\',
+			ctrlKey: true,
+			action: 'toggle-sidebar',
+			description: 'Toggle sidebar'
+		};
+		expect(getShortcutDisplay(toggleSidebar)).toBe('Ctrl+\\');
 	});
 });

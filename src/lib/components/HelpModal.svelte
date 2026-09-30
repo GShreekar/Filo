@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { shortcuts, type KeyboardShortcut } from '$lib/keyboard-shortcuts';
+	import { shortcuts, getShortcutDisplay } from '$lib/keyboard-shortcuts';
 	import { X } from 'lucide-svelte';
 	import { trapFocus } from '$lib/focus-trap';
 
@@ -19,33 +19,21 @@
 		}
 	}
 
-	function getKeyDisplay(shortcut: KeyboardShortcut) {
-		const parts = [];
-		if (shortcut.ctrlKey || shortcut.metaKey) {
-			parts.push(navigator.platform.includes('Mac') ? '⌘' : 'Ctrl');
-		}
-		if (shortcut.altKey) parts.push('Alt');
-		if (shortcut.shiftKey) parts.push('Shift');
-
-		let key = shortcut.key;
-		if (key === 'ArrowLeft') key = '←';
-		else if (key === 'ArrowRight') key = '→';
-		else if (key === 'ArrowUp') key = '↑';
-		else if (key === 'ArrowDown') key = '↓';
-		else if (key === '\\') key = '\\';
-		else key = key.toUpperCase();
-
-		parts.push(key);
-		return parts.join('+');
-	}
-
-	// Group shortcuts by category
-	$: groupedShortcuts = {
+	// Group shortcuts by category — a plain const, not $:, since `shortcuts`
+	// is a fixed module-level array and never actually changes at runtime.
+	const groupedShortcuts = {
 		'File Operations': shortcuts.filter((s) =>
 			['new-note', 'new-folder', 'save', 'delete-note', 'rename-note'].includes(s.action)
 		),
 		Navigation: shortcuts.filter((s) =>
-			['search', 'toggle-sidebar', 'previous-note', 'next-note', 'show-help'].includes(s.action)
+			[
+				'search',
+				'toggle-sidebar',
+				'previous-note',
+				'next-note',
+				'show-help',
+				'command-palette'
+			].includes(s.action)
 		),
 		'Text Formatting': shortcuts.filter((s) =>
 			['bold', 'italic', 'code', 'code-block', 'link'].includes(s.action)
@@ -129,7 +117,7 @@
 												<kbd
 													class="rounded bg-gray-100 px-2 py-1 font-mono text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200"
 												>
-													{getKeyDisplay(shortcut)}
+													{getShortcutDisplay(shortcut)}
 												</kbd>
 											</div>
 										{/each}

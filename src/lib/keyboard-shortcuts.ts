@@ -20,6 +20,13 @@ export const shortcuts: KeyboardShortcut[] = [
 	{ key: 's', ctrlKey: true, action: 'save', description: 'Save note' },
 
 	{ key: 'k', ctrlKey: true, action: 'search', description: 'Focus search' },
+	{
+		key: 'p',
+		ctrlKey: true,
+		shiftKey: true,
+		action: 'command-palette',
+		description: 'Open command palette'
+	},
 
 	{ key: 'b', ctrlKey: true, action: 'bold', description: 'Bold text' },
 	{ key: 'i', ctrlKey: true, action: 'italic', description: 'Italic text' },
@@ -58,8 +65,8 @@ export const shortcuts: KeyboardShortcut[] = [
 // Cmd+anything never matched on Mac, since event.metaKey and event.ctrlKey are
 // genuinely different keys there — despite the help modal correctly showing
 // "⌘" for these shortcuts, pressing it did nothing. Checked fresh each call,
-// same as getShortcutDescription() below already does, rather than cached —
-// navigator.platform can't change mid-session, so this costs nothing.
+// same as getShortcutDisplay() below, rather than cached — navigator.platform
+// can't change mid-session, so this costs nothing.
 function isMacPlatform(): boolean {
 	return typeof navigator !== 'undefined' && navigator.platform.includes('Mac');
 }
@@ -76,17 +83,23 @@ export function matchesShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut
 	);
 }
 
-export function getShortcutDescription(action: string): string {
-	const shortcut = shortcuts.find((s) => s.action === action);
-	if (!shortcut) return '';
-
+// Shared by HelpModal and CommandPalette so the two don't drift — used to
+// have its own near-identical copy in each.
+export function getShortcutDisplay(shortcut: KeyboardShortcut): string {
 	const parts = [];
 	if (shortcut.ctrlKey || shortcut.metaKey) {
-		parts.push(navigator.platform.includes('Mac') ? '⌘' : 'Ctrl');
+		parts.push(isMacPlatform() ? '⌘' : 'Ctrl');
 	}
 	if (shortcut.altKey) parts.push('Alt');
 	if (shortcut.shiftKey) parts.push('Shift');
-	parts.push(shortcut.key.toUpperCase());
 
+	let key = shortcut.key;
+	if (key === 'ArrowLeft') key = '←';
+	else if (key === 'ArrowRight') key = '→';
+	else if (key === 'ArrowUp') key = '↑';
+	else if (key === 'ArrowDown') key = '↓';
+	else if (key !== '\\') key = key.toUpperCase();
+
+	parts.push(key);
 	return parts.join('+');
 }
