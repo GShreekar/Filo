@@ -10,6 +10,12 @@ interface AutoSaveState {
 	titleDirty: boolean;
 	lastSaved: Date | null;
 	isSaving: boolean;
+	// The note's revision as last seen from Firestore — either when it was
+	// opened, or when a remote update was adopted (see MainEditor.svelte's
+	// syncBaseRevision call). Compared against the note's live revision to
+	// detect a conflict (5.1.3): if the two differ while this session still
+	// has unsaved edits, another tab/session saved a change in between.
+	baseRevision: number | null;
 }
 
 export const autoSaveState = writable<AutoSaveState>({
@@ -19,7 +25,8 @@ export const autoSaveState = writable<AutoSaveState>({
 	contentDirty: false,
 	titleDirty: false,
 	lastSaved: null,
-	isSaving: false
+	isSaving: false,
+	baseRevision: null
 });
 
 let debounceTimer: NodeJS.Timeout;
@@ -47,11 +54,15 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 		if (state.contentDirty) update.content = state.content;
 		if (state.titleDirty) update.title = state.title;
 
+		let newRevision = state.baseRevision;
 		if (Object.keys(update).length > 0) {
 			// Silent: a toast for every debounced keystroke-driven save (title
 			// edits in particular) is noise, not feedback — explicit rename
 			// actions elsewhere still show one.
-			await updateNote(noteId, update, { silent: true });
+			newRevision = await updateNote(noteId, update, {
+				silent: true,
+				baseRevision: state.baseRevision ?? 0
+			});
 		}
 
 		autoSaveState.update((state) => ({
@@ -59,7 +70,8 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 			contentDirty: false,
 			titleDirty: false,
 			lastSaved: new Date(),
-			isSaving: false
+			isSaving: false,
+			baseRevision: newRevision
 		}));
 	} catch (error) {
 		console.error('Save failed:', error);
@@ -138,11 +150,17 @@ export function clearAutoSaveState() {
 		contentDirty: false,
 		titleDirty: false,
 		lastSaved: null,
-		isSaving: false
+		isSaving: false,
+		baseRevision: null
 	});
 }
 
-export async function setInitialNoteState(noteId: string, content: string, title: string) {
+export async function setInitialNoteState(
+	noteId: string,
+	content: string,
+	title: string,
+	revision: number
+) {
 	const currentState = get(autoSaveState);
 	if (currentState.noteId && currentState.noteId !== noteId) {
 		await saveCurrentNoteIfDirty(currentState.noteId);
@@ -158,8 +176,24 @@ export async function setInitialNoteState(noteId: string, content: string, title
 		contentDirty: false,
 		titleDirty: false,
 		lastSaved: null,
-		isSaving: false
+		isSaving: false,
+		baseRevision: revision
 	});
+}
+
+// Called when MainEditor adopts a remote change (nothing locally dirty, see
+// its reactive block) so the next save's conflict check compares against
+// what's actually on the server now, not the revision this session started
+// from.
+export function syncBaseRevision(noteId: string, revision: number) {
+	autoSaveState.update((state) =>
+		state.noteId === noteId ? { ...state, baseRevision: revision } : state
+	);
+}
+
+export function getBaseRevision(): number | null {
+	const state = get(autoSaveState);
+	return state.baseRevision;
 }
 
 export function isDirty(): boolean {

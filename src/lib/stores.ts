@@ -92,3 +92,9 @@ export const editorActions = writable<{
 	action: null,
 	timestamp: 0
 });
+
+// Set when the open note has unsaved local edits AND its live revision has
+// moved past the revision this editing session started from — i.e. another
+// tab/session saved a change in between (5.1.3). null when there's no
+// unresolved conflict for the currently open note.
+export const noteConflict = writable<{ noteId: string } | null>(null);

@@ -12,6 +12,7 @@ function makeNote(overrides: Partial<NoteMeta> = {}): NoteMeta {
 		updatedAt: new Date('2026-01-01'),
 		folderId: null,
 		ownerId: 'owner',
+		revision: 0,
 		...overrides
 	};
 }
@@ -137,5 +138,56 @@ describe('searchAll — generateExcerpt respects maxLength', () => {
 		// been clamped, not left at the content's full length.
 		expect(excerpt.length).toBeLessThan(content.length);
 		expect(excerpt).toContain('needle');
+	});
+});
+
+describe('searchAll — word-index prefilter never drops a real match', () => {
+	test('excludes notes that plainly cannot match, keeps ones that do', () => {
+		notes.set([
+			makeNote({ id: 'n1', title: 'Grocery list' }),
+			makeNote({ id: 'n2', title: 'Recipe for pancakes' })
+		]);
+		folders.set([]);
+		noteContentCache.set(
+			new Map([
+				['n1', 'buy eggs and flour'],
+				['n2', 'mix flour, milk, and eggs']
+			])
+		);
+
+		const results = searchAll('content:pancakes');
+		expect(results).toHaveLength(0);
+
+		const eggResults = searchAll('content:eggs');
+		expect(eggResults.map((r) => r.noteResult?.note.id).sort()).toEqual(['n1', 'n2']);
+	});
+
+	test('a multi-word phrase only matches where it appears contiguously', () => {
+		notes.set([
+			// Has both words, but not adjacent — must not match "buy milk".
+			makeNote({ id: 'n1', title: 'Note' }),
+			makeNote({ id: 'n2', title: 'Note' })
+		]);
+		folders.set([]);
+		noteContentCache.set(
+			new Map([
+				['n1', 'buy eggs, then get milk from the store'],
+				['n2', 'remember to buy milk today']
+			])
+		);
+
+		const results = searchAll('content:buy milk');
+		expect(results.map((r) => r.noteResult?.note.id)).toEqual(['n2']);
+	});
+
+	test('reflects a content edit made after the note was first indexed', () => {
+		notes.set([makeNote({ id: 'n1', title: 'Note' })]);
+		folders.set([]);
+		noteContentCache.set(new Map([['n1', 'original text']]));
+
+		expect(searchAll('content:banana')).toHaveLength(0);
+
+		noteContentCache.set(new Map([['n1', 'original text about a banana']]));
+		expect(searchAll('content:banana')).toHaveLength(1);
 	});
 });

@@ -134,6 +134,19 @@ describe('the allowlisted owner — notes (metadata)', () => {
 		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
 		await assertFails(updateDoc(doc(db, 'notes/owned'), { createdAt: Timestamp.now() }));
 	});
+
+	test('accepts a note with a valid revision, and one with none at all', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertSucceeds(setDoc(doc(db, 'notes/new'), note(OWNER_UID, { revision: 0 })));
+		await assertSucceeds(setDoc(doc(db, 'notes/legacy'), note(OWNER_UID)));
+	});
+
+	test('rejects a negative or non-integer revision', async () => {
+		const db = env.authenticatedContext(OWNER_UID, OWNER).firestore();
+		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { revision: -1 })));
+		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { revision: 1.5 })));
+		await assertFails(setDoc(doc(db, 'notes/bad'), note(OWNER_UID, { revision: '1' })));
+	});
 });
 
 describe('the allowlisted owner — note contents', () => {

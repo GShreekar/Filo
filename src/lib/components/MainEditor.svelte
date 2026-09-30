@@ -6,7 +6,8 @@
 		sidebarCollapsed,
 		editorSplitRatio,
 		editorActions,
-		helpModal
+		helpModal,
+		noteConflict
 	} from '$lib/stores';
 	import {
 		scheduleContentSave,
@@ -17,7 +18,11 @@
 		setInitialNoteState,
 		saveCurrentNoteIfDirty,
 		isContentDirty,
-		isTitleDirty
+		isTitleDirty,
+		isDirty,
+		getCurrentNoteId,
+		getBaseRevision,
+		syncBaseRevision
 	} from '$lib/auto-save';
 	import { createNote, subscribeNoteContent } from '$lib/firebase-service';
 	import { openNote } from '$lib/note-selection';
@@ -72,6 +77,22 @@
 
 	onDestroy(() => unsubscribeContent?.());
 
+	// Closing the tab mid-debounce (content/title saves wait 1.5-2s) used to
+	// lose whatever hadn't been written yet. This starts that write
+	// immediately instead of waiting out the timer; it's best-effort (the
+	// tab can still close before the network round-trip finishes), but
+	// Firestore's persistent local cache (firebase.ts) queues it in
+	// IndexedDB regardless, so it survives the closed tab and syncs next
+	// time the app opens rather than being lost outright.
+	function handleBeforeUnload() {
+		if (isDirty()) {
+			const noteId = getCurrentNoteId();
+			if (noteId) {
+				saveCurrentNoteIfDirty(noteId).catch(() => {});
+			}
+		}
+	}
+
 	$: if ($editorActions.action === 'rename-title' && $selectedNote) {
 		startEditingTitle();
 		editorActions.set({ action: null, timestamp: 0 });
@@ -93,9 +114,11 @@
 
 		checkDeviceType();
 		window.addEventListener('resize', checkDeviceType);
+		window.addEventListener('beforeunload', handleBeforeUnload);
 
 		return () => {
 			window.removeEventListener('resize', checkDeviceType);
+			window.removeEventListener('beforeunload', handleBeforeUnload);
 		};
 	});
 
@@ -106,16 +129,18 @@
 			const noteId = $selectedNote.id;
 			const noteContent = $selectedNote.content;
 			const noteTitle = $selectedNote.title;
+			const noteRevision = $selectedNote.revision;
 
-			runSerialized(() => setInitialNoteState(noteId, noteContent, noteTitle));
+			runSerialized(() => setInitialNoteState(noteId, noteContent, noteTitle, noteRevision));
 			watchNoteContent(noteId);
 
 			content = noteContent;
 			currentNoteId = noteId;
+			noteConflict.set(null);
 			if (isEditingTitle) {
 				cancelEditingTitle();
 			}
-		} else if (!isContentDirty() && !isTitleDirty() && $selectedNote.content !== content) {
+		} else if (!isContentDirty() && !isTitleDirty()) {
 			// Same note, and the store just handed us a Firestore snapshot
 			// that differs from what's on screen. This fires on *every*
 			// update to the open note, including the echo of our own save —
@@ -126,7 +151,23 @@
 			// equal, so this branch doesn't fire) or a real edit from
 			// another tab/device, which is fine to adopt since nothing here
 			// would be lost.
-			content = $selectedNote.content;
+			if ($selectedNote.content !== content) {
+				content = $selectedNote.content;
+			}
+			if ($selectedNote.revision !== getBaseRevision()) {
+				syncBaseRevision($selectedNote.id, $selectedNote.revision);
+			}
+			if ($noteConflict?.noteId === $selectedNote.id) {
+				noteConflict.set(null);
+			}
+		} else if ($selectedNote.revision !== getBaseRevision()) {
+			// Locally dirty (unsaved edits sitting in the editor) AND the
+			// server is already on a revision this session never saw — another
+			// tab/session saved a change in between. Surface it instead of
+			// silently letting the next autosave overwrite it, which is what
+			// used to happen (last-write-wins, with no indication anything
+			// was lost).
+			noteConflict.set({ noteId: $selectedNote.id });
 		}
 	} else if (currentNoteId) {
 		const noteId = currentNoteId;
@@ -143,6 +184,7 @@
 
 		content = '';
 		currentNoteId = null;
+		noteConflict.set(null);
 		if (isEditingTitle) {
 			cancelEditingTitle();
 		}
@@ -269,6 +311,25 @@
 
 	function closeNote() {
 		selectedNote.set(null);
+	}
+
+	// Discards this session's unsaved edits in favor of whatever another
+	// tab/session last saved, and resets autosave to track that as the new
+	// baseline — the "Reload latest version" side of the conflict banner.
+	function adoptRemoteNote() {
+		if (!$selectedNote) return;
+
+		const noteId = $selectedNote.id;
+		const noteContent = $selectedNote.content;
+		const noteTitle = $selectedNote.title;
+		const noteRevision = $selectedNote.revision;
+
+		content = noteContent;
+		if (isEditingTitle) {
+			cancelEditingTitle();
+		}
+		runSerialized(() => setInitialNoteState(noteId, noteContent, noteTitle, noteRevision));
+		noteConflict.set(null);
 	}
 
 	let splitContainer: HTMLElement;
@@ -421,6 +482,31 @@
 				</div>
 			</div>
 		</div>
+
+		{#if $noteConflict?.noteId === $selectedNote.id}
+			<div
+				class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
+			>
+				<span
+					>This note changed in another tab. Reload to see the latest version, or keep editing to
+					overwrite it when this saves.</span
+				>
+				<div class="flex flex-shrink-0 items-center gap-2">
+					<button
+						on:click={adoptRemoteNote}
+						class="rounded-md bg-amber-600 px-3 py-1 font-medium text-white transition-colors hover:bg-amber-700"
+					>
+						Reload latest version
+					</button>
+					<button
+						on:click={() => noteConflict.set(null)}
+						class="rounded-md px-2 py-1 text-amber-700 transition-colors hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900"
+					>
+						Dismiss
+					</button>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Editor Content -->
 		<div class="min-h-0 flex-1 overflow-hidden">

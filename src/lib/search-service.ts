@@ -43,6 +43,72 @@ function contentOf(noteId: string, cache: Map<string, string>): string {
 	return cache.get(noteId) ?? '';
 }
 
+// --- Word index (prefilter only) ---
+//
+// searchAll() used to run findMatches() — a regex scan of the FULL title and
+// content — against every note on every keystroke, regardless of whether
+// that note had any chance of matching. This index narrows the set of notes
+// worth scanning without ever being the source of truth for a match: it can
+// only produce false positives (a note it lets through turns out not to
+// match, caught by the real findMatches() call that still runs afterward),
+// never a false negative, so it can't change which results are returned or
+// how they're highlighted — only how many notes get fully scanned.
+//
+// Indexed per note (title + first MAX_INDEXED_CONTENT_LENGTH chars of
+// content) and only re-tokenized when that note's own title/content has
+// actually changed since the last search — not on every keystroke, and not
+// for notes nobody is editing.
+const MAX_INDEXED_CONTENT_LENGTH = 20_000;
+
+interface IndexedNote {
+	words: Set<string>;
+	title: string;
+	content: string;
+}
+
+const noteWordIndex = new Map<string, IndexedNote>();
+
+// Dropped once a note no longer exists, so the index doesn't grow without
+// bound over a long-lived session.
+notes.subscribe((allNotes) => {
+	const liveIds = new Set(allNotes.map((note) => note.id));
+	for (const noteId of noteWordIndex.keys()) {
+		if (!liveIds.has(noteId)) noteWordIndex.delete(noteId);
+	}
+});
+
+function tokenize(text: string): string[] {
+	return text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+}
+
+function getIndexedWords(noteId: string, title: string, content: string): Set<string> {
+	const truncatedContent = content.slice(0, MAX_INDEXED_CONTENT_LENGTH);
+	const cached = noteWordIndex.get(noteId);
+
+	if (cached && cached.title === title && cached.content === truncatedContent) {
+		return cached.words;
+	}
+
+	const words = new Set(tokenize(title).concat(tokenize(truncatedContent)));
+	noteWordIndex.set(noteId, { words, title, content: truncatedContent });
+	return words;
+}
+
+// A note can only contain searchTerm as a literal substring if every "word"
+// of searchTerm is itself a substring of some indexed word of that note —
+// necessary, not sufficient, which is exactly what a safe prefilter needs.
+function couldContainSearchTerm(words: Set<string>, searchTerm: string): boolean {
+	const termWords = tokenize(searchTerm);
+	if (termWords.length === 0) return true;
+
+	return termWords.every((termWord) => {
+		for (const word of words) {
+			if (word.includes(termWord)) return true;
+		}
+		return false;
+	});
+}
+
 export function searchAll(
 	query: string,
 	contentCache: Map<string, string> = get(noteContentCache)
@@ -98,6 +164,9 @@ export function searchAll(
 	if (!parsedQuery.folderOnly) {
 		for (const note of allNotes) {
 			const content = parsedQuery.titleOnly ? '' : contentOf(note.id, contentCache);
+			const words = getIndexedWords(note.id, note.title, content);
+			if (!couldContainSearchTerm(words, searchTerm)) continue;
+
 			const titleMatches = parsedQuery.contentOnly ? [] : findMatches(note.title, searchTerm);
 			const contentMatches = parsedQuery.titleOnly ? [] : findMatches(content, searchTerm);
 

@@ -18,6 +18,10 @@ export interface NoteMeta {
 	updatedAt: Date;
 	folderId: string | null;
 	ownerId: string;
+	// Bumped on every write (firebase-service.ts's updateNote). Lets a second
+	// tab/session notice its in-memory copy is stale before it overwrites a
+	// newer save with one made from older content (see conflict-store.ts).
+	revision: number;
 }
 
 // A note with its body attached — what the editor and export need. Always a

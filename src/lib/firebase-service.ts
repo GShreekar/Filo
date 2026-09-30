@@ -163,7 +163,8 @@ export async function createNote(
 			folderId: folderId || null,
 			ownerId,
 			createdAt: Timestamp.now(),
-			updatedAt: Timestamp.now()
+			updatedAt: Timestamp.now(),
+			revision: 0
 		});
 		batch.set(doc(db, 'noteContents', noteRef.id), { content, ownerId });
 		await batch.commit();
@@ -182,15 +183,16 @@ export async function createNote(
 export async function updateNote(
 	id: string,
 	updates: Partial<Pick<Note, 'title' | 'content'>>,
-	options: { silent?: boolean } = {}
-): Promise<void> {
+	options: { silent?: boolean; baseRevision: number }
+): Promise<number> {
 	try {
 		isSaving.set(true);
 		const ownerId = requireUserId();
 		const updatedAt = Timestamp.now();
+		const newRevision = options.baseRevision + 1;
 
 		const batch = writeBatch(db);
-		const metaUpdate: Record<string, unknown> = { updatedAt };
+		const metaUpdate: Record<string, unknown> = { updatedAt, revision: newRevision };
 		if (updates.title !== undefined) metaUpdate.title = updates.title;
 		batch.update(doc(db, 'notes', id), metaUpdate);
 
@@ -210,6 +212,8 @@ export async function updateNote(
 		if (updates.title && !options.silent) {
 			showError('Note updated successfully', 'success');
 		}
+
+		return newRevision;
 	} catch (error) {
 		console.error('Error updating note:', error);
 		showError('Failed to update note. Changes may be lost.');
@@ -305,7 +309,11 @@ export function subscribeNotes(userId: string) {
 					folderId: doc.data().folderId,
 					ownerId: doc.data().ownerId,
 					createdAt: doc.data().createdAt?.toDate() ?? new Date(),
-					updatedAt: doc.data().updatedAt?.toDate() ?? new Date()
+					updatedAt: doc.data().updatedAt?.toDate() ?? new Date(),
+					// Notes written before this field existed have none in
+					// Firestore — treated as revision 0 rather than migrated,
+					// since the next write to any such note stamps a real one.
+					revision: doc.data().revision ?? 0
 				}));
 				notes.set(noteData);
 			},

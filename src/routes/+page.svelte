@@ -134,6 +134,7 @@
 			updatedNote &&
 			(updatedNote.title !== $selectedNote.title ||
 				updatedNote.folderId !== $selectedNote.folderId ||
+				updatedNote.revision !== $selectedNote.revision ||
 				updatedNote.updatedAt.getTime() !== $selectedNote.updatedAt.getTime())
 		) {
 			selectedNote.set({ ...updatedNote, content: $selectedNote.content });

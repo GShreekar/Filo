@@ -177,7 +177,7 @@
 					if ('name' in target) {
 						await updateFolder(target.id, newName);
 					} else {
-						await updateNote(target.id, { title: newName });
+						await updateNote(target.id, { title: newName }, { baseRevision: target.revision });
 					}
 					inputModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {

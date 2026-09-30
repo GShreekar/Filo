@@ -175,7 +175,7 @@
 
 		if (newTitle !== note.title) {
 			try {
-				await updateNote(editingNoteId, { title: newTitle });
+				await updateNote(editingNoteId, { title: newTitle }, { baseRevision: note.revision });
 				cancelEditingTitle();
 			} catch (error) {
 				console.error('Failed to update note title:', error);
@@ -291,7 +291,8 @@
 				if (action === 'renameFolder') {
 					updateFolder(id, newName);
 				} else {
-					updateNote(id, { title: newName });
+					const note = $notes.find((n) => n.id === id);
+					updateNote(id, { title: newName }, { baseRevision: note?.revision ?? 0 });
 				}
 				inputModal.update((modal) => ({ ...modal, visible: false }));
 			}
@@ -528,7 +529,7 @@
 					if ('name' in target) {
 						await updateFolder(target.id, newName);
 					} else {
-						await updateNote(target.id, { title: newName });
+						await updateNote(target.id, { title: newName }, { baseRevision: target.revision });
 					}
 					inputModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {

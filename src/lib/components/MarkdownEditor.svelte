@@ -568,14 +568,46 @@
 		};
 	});
 
-	$: if (editorView && content !== editorView.state.doc.toString()) {
-		editorView.dispatch({
+	// Replaces only the span that actually differs (common prefix/suffix
+	// left untouched) instead of the whole document. A whole-doc replace
+	// resets the cursor to the start of the change and collapses undo
+	// history on every external update (a remote edit arriving, a note
+	// reload) even though most of the text is unchanged; CodeMirror maps
+	// the existing selection through a smaller change correctly, so typing
+	// elsewhere in the document isn't disturbed by an edit made elsewhere.
+	function applyMinimalDiff(view: EditorView, newContent: string) {
+		const oldContent = view.state.doc.toString();
+		if (oldContent === newContent) return;
+
+		const maxCommon = Math.min(oldContent.length, newContent.length);
+
+		let prefixLen = 0;
+		while (prefixLen < maxCommon && oldContent[prefixLen] === newContent[prefixLen]) {
+			prefixLen++;
+		}
+
+		let oldEnd = oldContent.length;
+		let newEnd = newContent.length;
+		while (
+			oldEnd > prefixLen &&
+			newEnd > prefixLen &&
+			oldContent[oldEnd - 1] === newContent[newEnd - 1]
+		) {
+			oldEnd--;
+			newEnd--;
+		}
+
+		view.dispatch({
 			changes: {
-				from: 0,
-				to: editorView.state.doc.length,
-				insert: content
+				from: prefixLen,
+				to: oldEnd,
+				insert: newContent.slice(prefixLen, newEnd)
 			}
 		});
+	}
+
+	$: if (editorView && content !== editorView.state.doc.toString()) {
+		applyMinimalDiff(editorView, content);
 	}
 
 	$: if (editorView) {
