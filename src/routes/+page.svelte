@@ -163,7 +163,8 @@
 			(updatedNote.title !== $selectedNote.title ||
 				updatedNote.folderId !== $selectedNote.folderId ||
 				updatedNote.revision !== $selectedNote.revision ||
-				updatedNote.updatedAt.getTime() !== $selectedNote.updatedAt.getTime())
+				updatedNote.updatedAt.getTime() !== $selectedNote.updatedAt.getTime() ||
+				(updatedNote.pinnedAt?.getTime() ?? null) !== ($selectedNote.pinnedAt?.getTime() ?? null))
 		) {
 			selectedNote.set({ ...updatedNote, content: $selectedNote.content });
 		}

@@ -1,5 +1,13 @@
 @import 'tailwindcss';
 
+/* Tailwind v4 defaults every `dark:` utility to @media
+   (prefers-color-scheme: dark) unless told otherwise — meaning without this,
+   the .dark class that theme.ts toggles on <html> did nothing: the OS-level
+   color scheme silently decided every dark: class regardless of the in-app
+   toggle or the theme choice saved in localStorage. This switches dark:
+   to mean "inside a .dark ancestor" instead. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @import 'katex/dist/katex.min.css';
 
 /* highlight.js theme is injected dynamically per light/dark theme —
