@@ -43,6 +43,7 @@ let titleDebounceTimer: NodeJS.Timeout;
 // never fix anyway — so the catch block below just surfaces it once instead
 // of retrying blindly.
 async function performSave(noteId: string, silent: boolean = false): Promise<void> {
+	const previousRevision = get(autoSaveState).baseRevision;
 	if (!silent) {
 		autoSaveState.update((state) => ({ ...state, isSaving: true }));
 	}
@@ -59,6 +60,9 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 			// Silent: a toast for every debounced keystroke-driven save (title
 			// edits in particular) is noise, not feedback — explicit rename
 			// actions elsewhere still show one.
+			// Firestore echoes our own write back before commit() resolves;
+			// advance the base now so that echo isn't mistaken for another session.
+			autoSaveState.update((s) => ({ ...s, baseRevision: (state.baseRevision ?? 0) + 1 }));
 			newRevision = await updateNote(noteId, update, {
 				silent: true,
 				baseRevision: state.baseRevision ?? 0
@@ -75,7 +79,7 @@ async function performSave(noteId: string, silent: boolean = false): Promise<voi
 		}));
 	} catch (error) {
 		console.error('Save failed:', error);
-		autoSaveState.update((s) => ({ ...s, isSaving: false }));
+		autoSaveState.update((s) => ({ ...s, isSaving: false, baseRevision: previousRevision }));
 		showError('Failed to save changes. Please try again.', 'error');
 		throw error;
 	}
@@ -189,6 +193,21 @@ export function syncBaseRevision(noteId: string, revision: number) {
 	autoSaveState.update((state) =>
 		state.noteId === noteId ? { ...state, baseRevision: revision } : state
 	);
+}
+
+// Renames from the sidebar/search bump the revision outside the editor's own
+// saves; advance the open note's base first so that isn't flagged as a conflict.
+export async function renameNote(noteId: string, title: string, revision: number): Promise<void> {
+	const state = get(autoSaveState);
+	const isTracked = state.noteId === noteId && state.baseRevision === revision;
+	if (isTracked) syncBaseRevision(noteId, revision + 1);
+
+	try {
+		await updateNote(noteId, { title }, { baseRevision: revision });
+	} catch (error) {
+		if (isTracked) syncBaseRevision(noteId, revision);
+		throw error;
+	}
 }
 
 export function getBaseRevision(): number | null {

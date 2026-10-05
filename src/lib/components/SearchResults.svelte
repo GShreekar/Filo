@@ -8,9 +8,9 @@
 	} from '$lib/search-service';
 	import type { Folder as FolderType, NoteMeta } from '$lib/types';
 	import { highlightText, formatTimeAgo } from '$lib/search-service';
+	import { renameNote } from '$lib/auto-save';
 	import ContextMenu from './ContextMenu.svelte';
 	import {
-		updateNote,
 		deleteNote,
 		updateFolder,
 		deleteFolder,
@@ -187,7 +187,7 @@
 					if ('name' in target) {
 						await updateFolder(target.id, newName);
 					} else {
-						await updateNote(target.id, { title: newName }, { baseRevision: target.revision });
+						await renameNote(target.id, newName, target.revision);
 					}
 					inputModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {

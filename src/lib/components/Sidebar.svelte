@@ -19,13 +19,13 @@
 		deleteFolder,
 		deleteNote,
 		updateFolder,
-		updateNote,
 		moveNote,
 		setFolderPinned,
 		setNotePinned
 	} from '$lib/firebase-service';
 	import { highlightText, formatTimeAgo } from '$lib/search-service';
 	import { openNote } from '$lib/note-selection';
+	import { renameNote } from '$lib/auto-save';
 	import { showError } from '$lib/error-store';
 	import { tick, onMount } from 'svelte';
 	import { Folder, FolderOpen, FileText, Plus, Search, MoreVertical, Pin } from 'lucide-svelte';
@@ -177,7 +177,7 @@
 
 		if (newTitle !== note.title) {
 			try {
-				await updateNote(editingNoteId, { title: newTitle }, { baseRevision: note.revision });
+				await renameNote(editingNoteId, newTitle, note.revision);
 				cancelEditingTitle();
 			} catch (error) {
 				console.error('Failed to update note title:', error);
@@ -307,7 +307,7 @@
 					updateFolder(id, newName);
 				} else {
 					const note = $notes.find((n) => n.id === id);
-					updateNote(id, { title: newName }, { baseRevision: note?.revision ?? 0 });
+					renameNote(id, newName, note?.revision ?? 0);
 				}
 				inputModal.update((modal) => ({ ...modal, visible: false }));
 			}
@@ -573,7 +573,7 @@
 					if ('name' in target) {
 						await updateFolder(target.id, newName);
 					} else {
-						await updateNote(target.id, { title: newName }, { baseRevision: target.revision });
+						await renameNote(target.id, newName, target.revision);
 					}
 					inputModal.update((modal) => ({ ...modal, visible: false }));
 				} catch (error) {
